@@ -1,0 +1,85 @@
+package com.ryannoah.auction.application.supporting.usermanagement;
+
+import com.ryannoah.auction.domain.shared.DomainNotFoundException;
+import com.ryannoah.auction.domain.supporting.usermanagement.Address;
+import com.ryannoah.auction.domain.supporting.usermanagement.Email;
+import com.ryannoah.auction.domain.supporting.usermanagement.User;
+import com.ryannoah.auction.domain.supporting.usermanagement.UserId;
+import com.ryannoah.auction.domain.supporting.usermanagement.UserRepository;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+
+@Service
+@Transactional
+public class UserApplicationService {
+
+    private final UserRepository userRepository;
+
+    public UserApplicationService(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
+
+    public User createUser(CreateUserCommand command) {
+        User user = User.create(
+                command.username(),
+                new Email(command.email()),
+                command.isVerified(),
+                new Address(command.street(), command.city(), command.zipCode(), command.country())
+        );
+        return userRepository.save(user);
+    }
+
+    public User updateUser(String userId, UpdateUserCommand command) {
+        User existing = getUser(userId);
+        User updated = new User(
+                existing.getUserId(),
+                command.username(),
+                new Email(command.email()),
+                existing.getRegistrationDate(),
+                command.isVerified(),
+                existing.getRating(),
+                new Address(command.street(), command.city(), command.zipCode(), command.country())
+        );
+        return userRepository.save(updated);
+    }
+
+    public void deleteUser(String userId) {
+        User existing = getUser(userId);
+        userRepository.deleteById(existing.getUserId());
+    }
+
+    @Transactional(readOnly = true)
+    public User getUser(String userId) {
+        return userRepository.findById(new UserId(userId))
+                .orElseThrow(() -> new DomainNotFoundException("User not found: " + userId));
+    }
+
+    @Transactional(readOnly = true)
+    public List<User> listUsers() {
+        return userRepository.findAll();
+    }
+
+    public record CreateUserCommand(
+            String username,
+            String email,
+            boolean isVerified,
+            String street,
+            String city,
+            String zipCode,
+            String country
+    ) {
+    }
+
+    public record UpdateUserCommand(
+            String username,
+            String email,
+            boolean isVerified,
+            String street,
+            String city,
+            String zipCode,
+            String country
+    ) {
+    }
+}

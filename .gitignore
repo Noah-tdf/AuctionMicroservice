@@ -1,0 +1,17 @@
+.gradle/
+.gradle-user/
+.idea/
+gradle-8.10.2/
+build/
+target/
+*/build/
+*/target/
+build-stale*/
+*/build-stale*/
+out/
+bin/
+*.class
+*.log
+*.tmp
+*.swp
+*.DS_Store

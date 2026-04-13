@@ -1,0 +1,14 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+LAYOUT_TOP_DOWN()
+
+title C4 Level 1 - System Context
+
+Person(user, "Auction Platform User", "Buyer or seller who manages listings, auctions, bids, and invoices")
+
+System(auctionSystem, "Auction Microservices System", "Microservices-based auction platform accessed through a single API gateway")
+
+Rel(user, auctionSystem, "Uses via HTTP/JSON")
+
+@enduml

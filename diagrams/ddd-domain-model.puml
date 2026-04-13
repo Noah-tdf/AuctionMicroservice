@@ -1,0 +1,92 @@
+@startuml
+hide circle
+skinparam classAttributeIconSize 0
+
+package "User Management BC" {
+  class User {
+    +userId
+    +username
+    +email
+    +registrationDate
+    +verified
+    +rating
+  }
+  class Address
+  User *-- Address
+}
+
+package "Auction Orchestration BC" {
+  class Auction {
+    +auctionId
+    +listingId
+    +sellerId
+    +startTime
+    +endTime
+    +startingPrice
+    +currentPrice
+    +status
+  }
+
+  class Bid {
+    +bidId
+    +auctionId
+    +bidderId
+    +bidAmount
+    +bidTime
+  }
+
+  class Money
+  class AuctionStatus
+
+  Auction *-- Bid
+  Auction *-- Money
+  Bid *-- Money
+  Auction ..> AuctionStatus
+}
+
+package "Listing Management BC" {
+  class Listing {
+    +listingId
+    +sellerId
+    +title
+    +description
+    +category
+    +condition
+    +published
+  }
+}
+
+package "Payment Processing BC" {
+  class Invoice {
+    +invoiceId
+    +auctionId
+    +buyerId
+    +sellerId
+    +issueDate
+    +dueDate
+    +status
+    +method
+  }
+
+  class Money
+  Invoice *-- Money : finalSaleAmount
+}
+
+note bottom of Listing
+  Milestone 1 boundary:
+  no runtime repository lookups
+  into User Management BC
+end note
+
+note bottom of Invoice
+  Milestone 1 boundary:
+  no runtime repository lookups
+  into other bounded contexts
+end note
+
+note bottom of Auction
+  Bounded context owns auction lifecycle,
+  bidding rules, and auction state
+end note
+
+@enduml

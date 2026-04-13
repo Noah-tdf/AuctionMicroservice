@@ -1,0 +1,167 @@
+services:
+  api-gateway:
+    build:
+      context: .
+      dockerfile: api-gateway/Dockerfile
+    container_name: auction-api-gateway
+    depends_on:
+      auction-service:
+        condition: service_started
+      user-service:
+        condition: service_started
+      listing-service:
+        condition: service_started
+      invoice-service:
+        condition: service_started
+    environment:
+      SERVER_PORT: 8080
+      AUCTION_SERVICE_BASE_URL: http://auction-service:8080
+      USER_SERVICE_BASE_URL: http://user-service:8080
+      LISTING_SERVICE_BASE_URL: http://listing-service:8080
+      INVOICE_SERVICE_BASE_URL: http://invoice-service:8080
+    ports:
+      - "8080:8080"
+
+  auction-service:
+    build:
+      context: .
+      dockerfile: auction-service/Dockerfile
+    container_name: auction-auction-service
+    depends_on:
+      auction-db:
+        condition: service_healthy
+    environment:
+      SERVER_PORT: 8080
+      DB_HOST: auction-db
+      DB_PORT: 3306
+      DB_NAME: auctiondb
+      DB_USER: auction
+      DB_PASSWORD: auction
+
+  user-service:
+    build:
+      context: .
+      dockerfile: user-service/Dockerfile
+    container_name: auction-user-service
+    depends_on:
+      user-db:
+        condition: service_healthy
+    environment:
+      SERVER_PORT: 8080
+      DB_HOST: user-db
+      DB_PORT: 3306
+      DB_NAME: userdb
+      DB_USER: auction
+      DB_PASSWORD: auction
+
+  listing-service:
+    build:
+      context: .
+      dockerfile: listing-service/Dockerfile
+    container_name: auction-listing-service
+    depends_on:
+      listing-db:
+        condition: service_healthy
+    environment:
+      SERVER_PORT: 8080
+      DB_HOST: listing-db
+      DB_PORT: 5432
+      DB_NAME: listingdb
+      DB_USER: auction
+      DB_PASSWORD: auction
+
+  invoice-service:
+    build:
+      context: .
+      dockerfile: invoice-service/Dockerfile
+    container_name: auction-invoice-service
+    depends_on:
+      invoice-db:
+        condition: service_healthy
+    environment:
+      SERVER_PORT: 8080
+      DB_HOST: invoice-db
+      DB_PORT: 3306
+      DB_NAME: invoicedb
+      DB_USER: auction
+      DB_PASSWORD: auction
+
+  auction-db:
+    image: mysql:8.4
+    container_name: auction-auction-db
+    environment:
+      MYSQL_DATABASE: auctiondb
+      MYSQL_USER: auction
+      MYSQL_PASSWORD: auction
+      MYSQL_ROOT_PASSWORD: root
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  user-db:
+    image: mysql:8.4
+    container_name: auction-user-db
+    environment:
+      MYSQL_DATABASE: userdb
+      MYSQL_USER: auction
+      MYSQL_PASSWORD: auction
+      MYSQL_ROOT_PASSWORD: root
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  invoice-db:
+    image: mysql:8.4
+    container_name: auction-invoice-db
+    environment:
+      MYSQL_DATABASE: invoicedb
+      MYSQL_USER: auction
+      MYSQL_PASSWORD: auction
+      MYSQL_ROOT_PASSWORD: root
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  listing-db:
+    image: postgres:16
+    container_name: auction-listing-db
+    environment:
+      POSTGRES_DB: listingdb
+      POSTGRES_USER: auction
+      POSTGRES_PASSWORD: auction
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U auction -d listingdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  phpmyadmin:
+    image: phpmyadmin:5.2
+    container_name: auction-phpmyadmin
+    depends_on:
+      user-db:
+        condition: service_healthy
+      invoice-db:
+        condition: service_healthy
+    environment:
+      PMA_ARBITRARY: 1
+      PMA_HOST: user-db
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: root
+
+  pgadmin:
+    image: dpage/pgadmin4:8.10
+    container_name: auction-pgadmin
+    depends_on:
+      listing-db:
+        condition: service_healthy
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@auction.com
+      PGADMIN_DEFAULT_PASSWORD: admin

@@ -1,0 +1,49 @@
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
+
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'jacoco'
+
+    group = 'com.ryannoah'
+    version = '1.0.0'
+
+    repositories {
+        mavenCentral()
+    }
+
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(17)
+        }
+    }
+
+    tasks.withType(Test).configureEach {
+        useJUnitPlatform()
+        finalizedBy tasks.named('jacocoTestReport')
+    }
+
+    jacocoTestReport {
+        dependsOn tasks.named('test')
+        reports {
+            xml.required = true
+            html.required = true
+        }
+    }
+
+    tasks.named('clean') {
+        doFirst {
+            File buildDirFile = layout.buildDirectory.asFile.get()
+            if (!buildDirFile.exists()) {
+                return
+            }
+
+            File staleDir = new File(buildDirFile.parentFile, "${buildDirFile.name}-stale-${System.currentTimeMillis()}")
+            try {
+                Files.move(buildDirFile.toPath(), staleDir.toPath(), StandardCopyOption.REPLACE_EXISTING)
+            } catch (Exception ex) {
+                logger.warn("Could not move stale build directory ${buildDirFile} before clean: ${ex.message}")
+            }
+        }
+    }
+}
