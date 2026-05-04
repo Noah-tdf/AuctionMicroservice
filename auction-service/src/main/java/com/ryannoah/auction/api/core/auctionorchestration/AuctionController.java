@@ -10,6 +10,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -17,7 +18,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
@@ -40,8 +40,7 @@ public class AuctionController {
     }
 
     @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    public AuctionResponse createAuction(@Valid @RequestBody CreateAuctionRequest request) {
+    public ResponseEntity<AuctionResponse> createAuction(@Valid @RequestBody CreateAuctionRequest request) {
         Auction auction = auctionApplicationService.createAuction(new AuctionApplicationService.CreateAuctionCommand(
                 request.listingId(),
                 request.sellerId(),
@@ -50,11 +49,11 @@ public class AuctionController {
                 request.startingPrice(),
                 request.currency()
         ));
-        return toAuctionResponse(auction);
+        return ResponseEntity.status(HttpStatus.CREATED).body(toAuctionResponse(auctionApplicationService.getAuctionAggregate(auction.getAuctionId().value())));
     }
 
     @PutMapping("/{auctionId}")
-    public AuctionResponse updateAuction(@PathVariable String auctionId, @Valid @RequestBody UpdateAuctionRequest request) {
+    public ResponseEntity<AuctionResponse> updateAuction(@PathVariable String auctionId, @Valid @RequestBody UpdateAuctionRequest request) {
         Auction auction = auctionApplicationService.updateAuction(
                 auctionId,
                 new AuctionApplicationService.UpdateAuctionCommand(
@@ -64,49 +63,50 @@ public class AuctionController {
                         request.currency()
                 )
         );
-        return toAuctionResponse(auction);
+        return ResponseEntity.ok(toAuctionResponse(auctionApplicationService.getAuctionAggregate(auction.getAuctionId().value())));
     }
 
     @DeleteMapping("/{auctionId}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteAuction(@PathVariable String auctionId) {
+    public ResponseEntity<Void> deleteAuction(@PathVariable String auctionId) {
         auctionApplicationService.deleteAuction(auctionId);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{auctionId}/activate")
-    public AuctionResponse activateAuction(@PathVariable String auctionId) {
-        return toAuctionResponse(auctionApplicationService.activateAuction(auctionId));
+    public ResponseEntity<AuctionResponse> activateAuction(@PathVariable String auctionId) {
+        Auction auction = auctionApplicationService.activateAuction(auctionId);
+        return ResponseEntity.ok(toAuctionResponse(auctionApplicationService.getAuctionAggregate(auction.getAuctionId().value())));
     }
 
     @PostMapping("/{auctionId}/close")
-    public AuctionResponse closeAuction(@PathVariable String auctionId) {
-        return toAuctionResponse(auctionApplicationService.closeAuction(auctionId));
+    public ResponseEntity<AuctionResponse> closeAuction(@PathVariable String auctionId) {
+        Auction auction = auctionApplicationService.closeAuction(auctionId);
+        return ResponseEntity.ok(toAuctionResponse(auctionApplicationService.getAuctionAggregate(auction.getAuctionId().value())));
     }
 
     @GetMapping("/{auctionId}")
-    public AuctionResponse getAuction(@PathVariable String auctionId) {
-        return toAuctionResponse(auctionApplicationService.getAuction(auctionId));
+    public ResponseEntity<AuctionResponse> getAuction(@PathVariable String auctionId) {
+        return ResponseEntity.ok(toAuctionResponse(auctionApplicationService.getAuctionAggregate(auctionId)));
     }
 
     @GetMapping
-    public List<AuctionResponse> listAuctions() {
-        return auctionApplicationService.listAuctions().stream().map(this::toAuctionResponse).toList();
+    public ResponseEntity<List<AuctionResponse>> listAuctions() {
+        return ResponseEntity.ok(auctionApplicationService.listAuctionAggregates().stream().map(this::toAuctionResponse).toList());
     }
 
     @PostMapping("/{auctionId}/bids")
-    @ResponseStatus(HttpStatus.CREATED)
-    public BidResponse placeBid(@PathVariable String auctionId, @Valid @RequestBody PlaceBidRequest request) {
+    public ResponseEntity<BidResponse> placeBid(@PathVariable String auctionId, @Valid @RequestBody PlaceBidRequest request) {
         Bid bid = bidApplicationService.placeBid(new BidApplicationService.PlaceBidCommand(
                 auctionId,
                 request.bidderId(),
                 request.bidAmount(),
                 request.currency()
         ));
-        return toBidResponse(bid);
+        return ResponseEntity.status(HttpStatus.CREATED).body(toBidResponse(bid));
     }
 
     @PutMapping("/{auctionId}/bids/{bidId}")
-    public BidResponse updateBid(
+    public ResponseEntity<BidResponse> updateBid(
             @PathVariable String auctionId,
             @PathVariable String bidId,
             @Valid @RequestBody UpdateBidRequest request
@@ -116,21 +116,22 @@ public class AuctionController {
                 bidId,
                 new BidApplicationService.UpdateBidCommand(request.bidAmount(), request.currency())
         );
-        return toBidResponse(bid);
+        return ResponseEntity.ok(toBidResponse(bid));
     }
 
     @DeleteMapping("/{auctionId}/bids/{bidId}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteBid(@PathVariable String auctionId, @PathVariable String bidId) {
+    public ResponseEntity<Void> deleteBid(@PathVariable String auctionId, @PathVariable String bidId) {
         bidApplicationService.deleteBid(auctionId, bidId);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{auctionId}/bids")
-    public List<BidResponse> listBids(@PathVariable String auctionId) {
-        return bidApplicationService.listBids(auctionId).stream().map(this::toBidResponse).toList();
+    public ResponseEntity<List<BidResponse>> listBids(@PathVariable String auctionId) {
+        return ResponseEntity.ok(bidApplicationService.listBids(auctionId).stream().map(this::toBidResponse).toList());
     }
 
-    private AuctionResponse toAuctionResponse(Auction auction) {
+    private AuctionResponse toAuctionResponse(AuctionApplicationService.AuctionAggregate aggregate) {
+        Auction auction = aggregate.auction();
         return new AuctionResponse(
                 auction.getAuctionId().value(),
                 auction.getListingId().value(),
@@ -140,7 +141,11 @@ public class AuctionController {
                 auction.getStartingPrice().amount(),
                 auction.getCurrentPrice().amount(),
                 auction.getStartingPrice().currency(),
-                auction.getStatus().name()
+                auction.getStatus().name(),
+                aggregate.listing(),
+                aggregate.seller(),
+                aggregate.invoice(),
+                bidApplicationService.listBids(auction.getAuctionId().value()).stream().map(this::toBidResponse).toList()
         );
     }
 
@@ -195,7 +200,11 @@ public class AuctionController {
             BigDecimal startingPrice,
             BigDecimal currentPrice,
             String currency,
-            String status
+            String status,
+            Object listing,
+            Object seller,
+            Object invoice,
+            List<BidResponse> bids
     ) {
     }
 

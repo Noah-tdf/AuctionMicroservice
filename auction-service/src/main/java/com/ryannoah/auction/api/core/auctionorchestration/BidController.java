@@ -2,6 +2,7 @@ package com.ryannoah.auction.api.core.auctionorchestration;
 
 import com.ryannoah.auction.application.core.auctionorchestration.BidApplicationService;
 import com.ryannoah.auction.domain.core.auctionorchestration.Bid;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -20,8 +21,8 @@ public class BidController {
     }
 
     @GetMapping
-    public java.util.List<BidResponse> listBids() {
-        return bidApplicationService.listAllBids().stream().map(this::toResponse).toList();
+    public ResponseEntity<java.util.List<BidResponse>> listBids() {
+        return ResponseEntity.ok(bidApplicationService.listAllBids().stream().map(this::toResponse).toList());
     }
 
     private BidResponse toResponse(Bid bid) {

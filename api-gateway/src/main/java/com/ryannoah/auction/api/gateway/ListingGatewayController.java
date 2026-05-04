@@ -1,9 +1,6 @@
 package com.ryannoah.auction.api.gateway;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -14,7 +11,6 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 import java.util.Map;
@@ -23,26 +19,20 @@ import java.util.Map;
 @RequestMapping("/api/v1/listings")
 public class ListingGatewayController {
 
-    private final WebClient webClient;
+    private final ListingDomainClient listingDomainClient;
     private final HypermediaSupport hypermediaSupport;
-    private final String listingServiceBaseUrl;
 
     public ListingGatewayController(
-            WebClient webClient,
-            HypermediaSupport hypermediaSupport,
-            @Value("${services.listing-service.base-url}") String listingServiceBaseUrl
+            ListingDomainClient listingDomainClient,
+            HypermediaSupport hypermediaSupport
     ) {
-        this.webClient = webClient;
+        this.listingDomainClient = listingDomainClient;
         this.hypermediaSupport = hypermediaSupport;
-        this.listingServiceBaseUrl = listingServiceBaseUrl;
     }
 
     @GetMapping
     Mono<ResponseEntity<JsonNode>> listListings() {
-        return webClient.get()
-                .uri(listingServiceBaseUrl + "/api/v1/listings")
-                .retrieve()
-                .bodyToMono(ArrayNode.class)
+        return listingDomainClient.listListings()
                 .map(items -> ResponseEntity.ok(hypermediaSupport.wrapCollection(items, Map.of(
                         "self", "/api/v1/listings",
                         "create", "/api/v1/listings"
@@ -51,61 +41,44 @@ public class ListingGatewayController {
 
     @GetMapping("/{listingId}")
     Mono<ResponseEntity<JsonNode>> getListing(@PathVariable String listingId) {
-        return forwardWithLinks(HttpMethod.GET, "/api/v1/listings/" + listingId, null, Map.of(
-                "self", "/api/v1/listings/" + listingId,
-                "update", "/api/v1/listings/" + listingId,
-                "delete", "/api/v1/listings/" + listingId,
-                "publish", "/api/v1/listings/" + listingId + "/publish"
-        ));
+        return listingDomainClient.getListing(listingId)
+                .map(body -> ResponseEntity.ok(hypermediaSupport.addLinks(body, Map.of(
+                        "self", "/api/v1/listings/" + listingId,
+                        "update", "/api/v1/listings/" + listingId,
+                        "delete", "/api/v1/listings/" + listingId,
+                        "publish", "/api/v1/listings/" + listingId + "/publish"
+                ))));
     }
 
     @PostMapping
     Mono<ResponseEntity<JsonNode>> createListing(@RequestBody JsonNode request) {
-        return forwardWithLinks(HttpMethod.POST, "/api/v1/listings", request, Map.of(
-                "collection", "/api/v1/listings"
-        ), HttpStatus.CREATED);
+        return listingDomainClient.createListing(request)
+                .map(body -> ResponseEntity.status(HttpStatus.CREATED).body(hypermediaSupport.addLinks(body, Map.of(
+                        "collection", "/api/v1/listings"
+                ))));
     }
 
     @PutMapping("/{listingId}")
     Mono<ResponseEntity<JsonNode>> updateListing(@PathVariable String listingId, @RequestBody JsonNode request) {
-        return forwardWithLinks(HttpMethod.PUT, "/api/v1/listings/" + listingId, request, Map.of(
-                "self", "/api/v1/listings/" + listingId,
-                "publish", "/api/v1/listings/" + listingId + "/publish"
-        ));
+        return listingDomainClient.updateListing(listingId, request)
+                .map(body -> ResponseEntity.ok(hypermediaSupport.addLinks(body, Map.of(
+                        "self", "/api/v1/listings/" + listingId,
+                        "publish", "/api/v1/listings/" + listingId + "/publish"
+                ))));
     }
 
     @PostMapping("/{listingId}/publish")
     Mono<ResponseEntity<JsonNode>> publishListing(@PathVariable String listingId) {
-        return forwardWithLinks(HttpMethod.POST, "/api/v1/listings/" + listingId + "/publish", null, Map.of(
-                "self", "/api/v1/listings/" + listingId,
-                "collection", "/api/v1/listings"
-        ));
+        return listingDomainClient.publishListing(listingId)
+                .map(body -> ResponseEntity.ok(hypermediaSupport.addLinks(body, Map.of(
+                        "self", "/api/v1/listings/" + listingId,
+                        "collection", "/api/v1/listings"
+                ))));
     }
 
     @DeleteMapping("/{listingId}")
     Mono<ResponseEntity<Void>> deleteListing(@PathVariable String listingId) {
-        return webClient.delete()
-                .uri(listingServiceBaseUrl + "/api/v1/listings/{id}", listingId)
-                .retrieve()
-                .toBodilessEntity()
-                .map(response -> ResponseEntity.noContent().build());
-    }
-
-    private Mono<ResponseEntity<JsonNode>> forwardWithLinks(HttpMethod method, String path, JsonNode request, Map<String, String> links) {
-        return forwardWithLinks(method, path, request, links, HttpStatus.OK);
-    }
-
-    private Mono<ResponseEntity<JsonNode>> forwardWithLinks(
-            HttpMethod method,
-            String path,
-            JsonNode request,
-            Map<String, String> links,
-            HttpStatus expectedStatus
-    ) {
-        WebClient.RequestBodySpec spec = webClient.method(method).uri(listingServiceBaseUrl + path);
-        WebClient.RequestHeadersSpec<?> headersSpec = request == null ? spec : spec.bodyValue(request);
-        return headersSpec.retrieve()
-                .bodyToMono(JsonNode.class)
-                .map(body -> ResponseEntity.status(expectedStatus).body(hypermediaSupport.addLinks(body, links)));
+        return listingDomainClient.deleteListing(listingId)
+                .thenReturn(ResponseEntity.noContent().build());
     }
 }

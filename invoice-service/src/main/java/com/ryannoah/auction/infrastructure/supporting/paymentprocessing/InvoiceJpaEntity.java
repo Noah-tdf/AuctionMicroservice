@@ -1,14 +1,12 @@
 package com.ryannoah.auction.infrastructure.supporting.paymentprocessing;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "invoices")
+@Document(collection = "invoices")
 public class InvoiceJpaEntity {
 
     @Id

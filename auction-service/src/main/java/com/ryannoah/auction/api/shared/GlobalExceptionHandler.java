@@ -3,6 +3,7 @@ package com.ryannoah.auction.api.shared;
 import com.ryannoah.auction.domain.shared.DomainConflictException;
 import com.ryannoah.auction.domain.shared.DomainNotFoundException;
 import com.ryannoah.auction.domain.shared.DomainValidationException;
+import com.ryannoah.auction.infrastructure.core.auctionorchestration.client.DownstreamServiceException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -43,6 +44,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DomainConflictException.class)
     public ResponseEntity<ErrorResponse> handleConflict(DomainConflictException exception, HttpServletRequest request) {
         return build(HttpStatus.CONFLICT, exception.getMessage(), request.getRequestURI());
+    }
+
+    @ExceptionHandler(DownstreamServiceException.class)
+    public ResponseEntity<ErrorResponse> handleDownstreamService(DownstreamServiceException exception, HttpServletRequest request) {
+        return build(exception.getStatus(), exception.getMessage(), request.getRequestURI());
     }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)

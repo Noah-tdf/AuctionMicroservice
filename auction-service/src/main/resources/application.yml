@@ -13,3 +13,11 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+
+services:
+  user-service:
+    base-url: ${USER_SERVICE_BASE_URL:http://localhost:8081}
+  listing-service:
+    base-url: ${LISTING_SERVICE_BASE_URL:http://localhost:8082}
+  invoice-service:
+    base-url: ${INVOICE_SERVICE_BASE_URL:http://localhost:8083}

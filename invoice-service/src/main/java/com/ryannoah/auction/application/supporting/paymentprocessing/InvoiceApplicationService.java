@@ -13,13 +13,11 @@ import com.ryannoah.auction.domain.supporting.paymentprocessing.PaymentMethod;
 import com.ryannoah.auction.domain.supporting.paymentprocessing.PaymentStatus;
 import com.ryannoah.auction.domain.supporting.usermanagement.UserId;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
-@Transactional
 public class InvoiceApplicationService {
 
     private final InvoiceRepository invoiceRepository;
@@ -82,13 +80,11 @@ public class InvoiceApplicationService {
         return invoiceRepository.save(invoice);
     }
 
-    @Transactional(readOnly = true)
     public Invoice getInvoice(String invoiceId) {
         return invoiceRepository.findById(new InvoiceId(invoiceId))
                 .orElseThrow(() -> new DomainNotFoundException("Invoice not found: " + invoiceId));
     }
 
-    @Transactional(readOnly = true)
     public List<Invoice> listInvoices() {
         return invoiceRepository.findAll();
     }

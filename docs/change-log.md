@@ -9,6 +9,7 @@
 
 - Split the monolith into a Gradle multi-project workspace:
   - `api-gateway`
+  - `auction-service`
   - `user-service`
   - `listing-service`
   - `invoice-service`
@@ -21,20 +22,22 @@
 - Added independent Spring Boot application entry points for all four modules.
 - Added separate Flyway schemas and sample seed data for each low-level service.
 - Added one subdomain-specific exception per low-level service:
+  - `AuctionHasBidsException`
   - `DuplicateEmailException`
   - `ListingAlreadyPublishedException`
   - `InvoiceAlreadyPaidException`
 - Reworked controllers to return plain JSON in low-level services.
 - Added repository integration tests and controller integration tests with `WebTestClient`.
 - Added JaCoCo reporting in the shared Gradle configuration.
-- Replaced the original 3-container compose file with a 9-container microservices landscape:
+- Replaced the original 3-container compose file with an 11-container microservices landscape:
   - API gateway
-  - 3 low-level services
-  - 3 databases
+  - 4 low-level services
+  - 4 databases
   - phpMyAdmin
   - pgAdmin
 
 ## Remaining validation
 
-- `gradlew` is not yet present in this workspace and still needs to be generated or added before the exact peer-grading command `./gradlew clean build` can be executed.
-- The new code should be verified with a full Gradle build and `docker compose up --build` once Gradle wrapper support is available locally.
+- Added a domain client layer to the API gateway so controllers delegate downstream calls instead of using `WebClient` directly.
+- Added centralized HTTP client error translation and gateway-wide exception handling for downstream `4xx/5xx` and service-unavailable scenarios.
+- Verified the exact peer-grading command `./gradlew clean build` succeeds locally after the gateway refactor.

@@ -2,6 +2,7 @@ package com.ryannoah.auction.application.core.auctionorchestration;
 
 import com.ryannoah.auction.domain.core.auctionorchestration.Auction;
 import com.ryannoah.auction.domain.core.auctionorchestration.AuctionId;
+import com.ryannoah.auction.domain.core.auctionorchestration.AuctionInvariantViolationException;
 import com.ryannoah.auction.domain.core.auctionorchestration.AuctionRepository;
 import com.ryannoah.auction.domain.core.auctionorchestration.Bid;
 import com.ryannoah.auction.domain.core.auctionorchestration.BidId;
@@ -10,6 +11,7 @@ import com.ryannoah.auction.domain.core.auctionorchestration.Money;
 import com.ryannoah.auction.domain.shared.DomainConflictException;
 import com.ryannoah.auction.domain.shared.DomainNotFoundException;
 import com.ryannoah.auction.domain.supporting.usermanagement.UserId;
+import com.ryannoah.auction.infrastructure.core.auctionorchestration.client.UserDomainClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,18 +25,22 @@ public class BidApplicationService {
 
     private final AuctionRepository auctionRepository;
     private final BidRepository bidRepository;
+    private final UserDomainClient userDomainClient;
 
     public BidApplicationService(
             AuctionRepository auctionRepository,
-            BidRepository bidRepository
+            BidRepository bidRepository,
+            UserDomainClient userDomainClient
     ) {
         this.auctionRepository = auctionRepository;
         this.bidRepository = bidRepository;
+        this.userDomainClient = userDomainClient;
     }
 
     public Bid placeBid(PlaceBidCommand command) {
         Auction auction = auctionRepository.findById(new AuctionId(command.auctionId()))
                 .orElseThrow(() -> new DomainNotFoundException("Auction not found: " + command.auctionId()));
+        validateBidder(auction, command.bidderId());
         Bid bid = Bid.create(auction.getAuctionId(), new UserId(command.bidderId()), new Money(command.bidAmount(), command.currency()));
         auction.acceptBid(bid);
         auctionRepository.save(auction);
@@ -97,6 +103,16 @@ public class BidApplicationService {
     private void ensureAuctionMatches(Bid bid, String auctionId) {
         if (!bid.getAuctionId().value().equals(auctionId)) {
             throw new DomainConflictException("Bid does not belong to the specified auction");
+        }
+    }
+
+    private void validateBidder(Auction auction, String bidderId) {
+        if (auction.getSellerId().value().equals(bidderId)) {
+            throw new AuctionInvariantViolationException("Auction seller cannot bid on their own auction: " + bidderId);
+        }
+        UserDomainClient.UserResponse bidder = userDomainClient.getUser(bidderId);
+        if (!bidder.verified()) {
+            throw new AuctionInvariantViolationException("Auction bidder must be verified: " + bidderId);
         }
     }
 

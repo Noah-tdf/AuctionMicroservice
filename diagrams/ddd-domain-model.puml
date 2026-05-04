@@ -85,8 +85,11 @@ note bottom of Invoice
 end note
 
 note bottom of Auction
-  Bounded context owns auction lifecycle,
-  bidding rules, and auction state
+  Aggregate Invariant:
+  an Auction can be scheduled only for
+  a published Listing owned by the verified Seller.
+  Bids can be placed only by verified Users
+  who are not the Seller.
 end note
 
 @enduml

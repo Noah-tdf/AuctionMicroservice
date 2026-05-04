@@ -10,7 +10,7 @@ Person(user, "Auction Platform User", "Buyer or seller using the platform")
 System_Boundary(auctionSystem, "Auction Microservices System") {
     Container(apiGateway, "API Gateway", "Spring Boot WebFlux", "Single entry point that exposes the public API and routes requests to backend services")
 
-    Container(auctionService, "Auction Service", "Spring Boot", "Manages auctions and bids")
+    Container(auctionService, "Auction Aggregator Service", "Spring Boot + WebClient", "Owns auctions and bids, orchestrates listing, user, and invoice use cases")
     Container(userService, "User Service", "Spring Boot", "Manages user accounts and addresses")
     Container(listingService, "Listing Service", "Spring Boot", "Manages listings and publishing")
     Container(invoiceService, "Invoice Service", "Spring Boot", "Manages invoices and payment processing")
@@ -18,15 +18,19 @@ System_Boundary(auctionSystem, "Auction Microservices System") {
     ContainerDb(auctionDb, "Auction DB", "MySQL", "Stores auctions and bids")
     ContainerDb(userDb, "User DB", "MySQL", "Stores users and addresses")
     ContainerDb(listingDb, "Listing DB", "PostgreSQL", "Stores listings")
-    ContainerDb(invoiceDb, "Invoice DB", "MySQL", "Stores invoices and payment status")
+    ContainerDb(invoiceDb, "Invoice DB", "MongoDB", "Stores invoices and payment status documents")
 }
 
 Rel(user, apiGateway, "Uses", "HTTPS/JSON")
 
-Rel(apiGateway, auctionService, "Routes auction and bid requests", "HTTP/JSON")
+Rel(apiGateway, auctionService, "Routes auction aggregate and bid requests", "HTTP/JSON")
 Rel(apiGateway, userService, "Routes user requests", "HTTP/JSON")
 Rel(apiGateway, listingService, "Routes listing requests", "HTTP/JSON")
 Rel(apiGateway, invoiceService, "Routes invoice requests", "HTTP/JSON")
+
+Rel(auctionService, userService, "Validates verified sellers and bidders", "HTTP/JSON")
+Rel(auctionService, listingService, "Validates listing ownership and publication", "HTTP/JSON")
+Rel(auctionService, invoiceService, "Creates and reads sale invoices", "HTTP/JSON")
 
 Rel(auctionService, auctionDb, "Reads from and writes to", "Spring Data JPA / Flyway")
 Rel(userService, userDb, "Reads from and writes to", "Spring Data JPA / Flyway")

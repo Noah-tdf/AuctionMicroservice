@@ -1,9 +1,6 @@
 package com.ryannoah.auction.api.gateway;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -14,7 +11,6 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 import java.util.Map;
@@ -23,26 +19,20 @@ import java.util.Map;
 @RequestMapping("/api/v1/users")
 public class UserGatewayController {
 
-    private final WebClient webClient;
+    private final UserDomainClient userDomainClient;
     private final HypermediaSupport hypermediaSupport;
-    private final String userServiceBaseUrl;
 
     public UserGatewayController(
-            WebClient webClient,
-            HypermediaSupport hypermediaSupport,
-            @Value("${services.user-service.base-url}") String userServiceBaseUrl
+            UserDomainClient userDomainClient,
+            HypermediaSupport hypermediaSupport
     ) {
-        this.webClient = webClient;
+        this.userDomainClient = userDomainClient;
         this.hypermediaSupport = hypermediaSupport;
-        this.userServiceBaseUrl = userServiceBaseUrl;
     }
 
     @GetMapping
     Mono<ResponseEntity<JsonNode>> listUsers() {
-        return webClient.get()
-                .uri(userServiceBaseUrl + "/api/v1/users")
-                .retrieve()
-                .bodyToMono(ArrayNode.class)
+        return userDomainClient.listUsers()
                 .map(items -> ResponseEntity.ok(hypermediaSupport.wrapCollection(items, Map.of(
                         "self", "/api/v1/users",
                         "create", "/api/v1/users"
@@ -51,52 +41,34 @@ public class UserGatewayController {
 
     @GetMapping("/{userId}")
     Mono<ResponseEntity<JsonNode>> getUser(@PathVariable String userId) {
-        return forwardWithLinks(HttpMethod.GET, "/api/v1/users/" + userId, null, Map.of(
-                "self", "/api/v1/users/" + userId,
-                "update", "/api/v1/users/" + userId,
-                "delete", "/api/v1/users/" + userId
-        ));
+        return userDomainClient.getUser(userId)
+                .map(body -> ResponseEntity.ok(hypermediaSupport.addLinks(body, Map.of(
+                        "self", "/api/v1/users/" + userId,
+                        "update", "/api/v1/users/" + userId,
+                        "delete", "/api/v1/users/" + userId
+                ))));
     }
 
     @PostMapping
     Mono<ResponseEntity<JsonNode>> createUser(@RequestBody JsonNode request) {
-        return forwardWithLinks(HttpMethod.POST, "/api/v1/users", request, Map.of(
-                "collection", "/api/v1/users"
-        ), HttpStatus.CREATED);
+        return userDomainClient.createUser(request)
+                .map(body -> ResponseEntity.status(HttpStatus.CREATED).body(hypermediaSupport.addLinks(body, Map.of(
+                        "collection", "/api/v1/users"
+                ))));
     }
 
     @PutMapping("/{userId}")
     Mono<ResponseEntity<JsonNode>> updateUser(@PathVariable String userId, @RequestBody JsonNode request) {
-        return forwardWithLinks(HttpMethod.PUT, "/api/v1/users/" + userId, request, Map.of(
-                "self", "/api/v1/users/" + userId,
-                "collection", "/api/v1/users"
-        ));
+        return userDomainClient.updateUser(userId, request)
+                .map(body -> ResponseEntity.ok(hypermediaSupport.addLinks(body, Map.of(
+                        "self", "/api/v1/users/" + userId,
+                        "collection", "/api/v1/users"
+                ))));
     }
 
     @DeleteMapping("/{userId}")
     Mono<ResponseEntity<Void>> deleteUser(@PathVariable String userId) {
-        return webClient.delete()
-                .uri(userServiceBaseUrl + "/api/v1/users/{id}", userId)
-                .retrieve()
-                .toBodilessEntity()
-                .map(response -> ResponseEntity.noContent().build());
-    }
-
-    private Mono<ResponseEntity<JsonNode>> forwardWithLinks(HttpMethod method, String path, JsonNode request, Map<String, String> links) {
-        return forwardWithLinks(method, path, request, links, HttpStatus.OK);
-    }
-
-    private Mono<ResponseEntity<JsonNode>> forwardWithLinks(
-            HttpMethod method,
-            String path,
-            JsonNode request,
-            Map<String, String> links,
-            HttpStatus expectedStatus
-    ) {
-        WebClient.RequestBodySpec spec = webClient.method(method).uri(userServiceBaseUrl + path);
-        WebClient.RequestHeadersSpec<?> headersSpec = request == null ? spec : spec.bodyValue(request);
-        return headersSpec.retrieve()
-                .bodyToMono(JsonNode.class)
-                .map(body -> ResponseEntity.status(expectedStatus).body(hypermediaSupport.addLinks(body, links)));
+        return userDomainClient.deleteUser(userId)
+                .thenReturn(ResponseEntity.noContent().build());
     }
 }
