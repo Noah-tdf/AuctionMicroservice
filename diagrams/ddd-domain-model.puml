@@ -1,95 +1,182 @@
 @startuml
-hide circle
+' DDD-PlantUML style domain model for the Auction Microservices System.
+' Stereotypes identify bounded contexts, aggregate roots, entities,
+' value objects, repositories, domain services, and domain exceptions.
+
+hide empty members
 skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam packageStyle rectangle
 
-package "User Management BC" {
-  class User {
-    +userId
-    +username
-    +email
-    +registrationDate
-    +verified
-    +rating
+skinparam class {
+  BackgroundColor<<Aggregate Root>> #FFF2CC
+  BackgroundColor<<Entity>> #DAE8FC
+  BackgroundColor<<Value Object>> #E1D5E7
+  BackgroundColor<<Repository>> #D5E8D4
+  BackgroundColor<<Domain Service>> #F8CECC
+  BackgroundColor<<Domain Exception>> #FCE5CD
+}
+
+title DDD Domain Model - Auction Microservices
+
+package "Auction Orchestration BC" <<Bounded Context>> {
+  class Auction <<Aggregate Root>> {
+    auctionId
+    listingId
+    sellerId
+    startTime
+    endTime
+    startingPrice
+    currentPrice
+    status
+    schedule()
+    activate()
+    close()
+    deleteIfNoBids()
   }
-  class Address
+
+  class Bid <<Entity>> {
+    bidId
+    bidderId
+    bidAmount
+    bidTime
+  }
+
+  class AuctionMoney <<Value Object>> {
+    amount
+    currency
+  }
+
+  enum AuctionStatus <<Value Object>> {
+    SCHEDULED
+    ACTIVE
+    CLOSED
+  }
+
+  interface AuctionRepository <<Repository>>
+  interface BidRepository <<Repository>>
+  class AuctionApplicationService <<Domain Service>>
+  class AuctionHasBidsException <<Domain Exception>>
+  class AuctionInvariantViolationException <<Domain Exception>>
+
+  Auction *-- "0..*" Bid
+  Auction *-- AuctionMoney : price
+  Bid *-- AuctionMoney : amount
+  Auction --> AuctionStatus
+  AuctionApplicationService --> AuctionRepository
+  AuctionApplicationService --> BidRepository
+  AuctionApplicationService ..> AuctionHasBidsException
+  AuctionApplicationService ..> AuctionInvariantViolationException
+}
+
+package "User Management BC" <<Bounded Context>> {
+  class User <<Aggregate Root>> {
+    userId
+    username
+    email
+    registrationDate
+    verified
+    rating
+  }
+
+  class Address <<Value Object>> {
+    street
+    city
+    province
+    postalCode
+  }
+
+  class Email <<Value Object>> {
+    value
+  }
+
+  interface UserRepository <<Repository>>
+  class UserApplicationService <<Domain Service>>
+  class DuplicateEmailException <<Domain Exception>>
+
   User *-- Address
+  User *-- Email
+  UserApplicationService --> UserRepository
+  UserApplicationService ..> DuplicateEmailException
 }
 
-package "Auction Orchestration BC" {
-  class Auction {
-    +auctionId
-    +listingId
-    +sellerId
-    +startTime
-    +endTime
-    +startingPrice
-    +currentPrice
-    +status
+package "Listing Management BC" <<Bounded Context>> {
+  class Listing <<Aggregate Root>> {
+    listingId
+    sellerId
+    title
+    description
+    category
+    condition
+    published
+    publish()
   }
 
-  class Bid {
-    +bidId
-    +auctionId
-    +bidderId
-    +bidAmount
-    +bidTime
+  enum ListingCondition <<Value Object>> {
+    NEW
+    USED
+    REFURBISHED
   }
 
-  class Money
-  class AuctionStatus
+  interface ListingRepository <<Repository>>
+  class ListingApplicationService <<Domain Service>>
+  class ListingAlreadyPublishedException <<Domain Exception>>
 
-  Auction *-- Bid
-  Auction *-- Money
-  Bid *-- Money
-  Auction ..> AuctionStatus
+  Listing --> ListingCondition
+  ListingApplicationService --> ListingRepository
+  ListingApplicationService ..> ListingAlreadyPublishedException
 }
 
-package "Listing Management BC" {
-  class Listing {
-    +listingId
-    +sellerId
-    +title
-    +description
-    +category
-    +condition
-    +published
-  }
-}
-
-package "Payment Processing BC" {
-  class Invoice {
-    +invoiceId
-    +auctionId
-    +buyerId
-    +sellerId
-    +issueDate
-    +dueDate
-    +status
-    +method
+package "Payment Processing BC" <<Bounded Context>> {
+  class Invoice <<Aggregate Root>> {
+    invoiceId
+    auctionId
+    buyerId
+    sellerId
+    finalSaleAmount
+    issueDate
+    dueDate
+    status
+    method
+    pay()
   }
 
-  class Money
-  Invoice *-- Money : finalSaleAmount
+  class InvoiceMoney <<Value Object>> {
+    amount
+    currency
+  }
+
+  enum InvoiceStatus <<Value Object>> {
+    PENDING
+    PAID
+  }
+
+  enum PaymentMethod <<Value Object>> {
+    CREDIT_CARD
+    BANK_TRANSFER
+    CASH
+  }
+
+  interface InvoiceRepository <<Repository>>
+  class InvoiceApplicationService <<Domain Service>>
+  class InvoiceAlreadyPaidException <<Domain Exception>>
+
+  Invoice *-- InvoiceMoney : finalSaleAmount
+  Invoice --> InvoiceStatus
+  Invoice --> PaymentMethod
+  InvoiceApplicationService --> InvoiceRepository
+  InvoiceApplicationService ..> InvoiceAlreadyPaidException
 }
-
-note bottom of Listing
-  Milestone 1 boundary:
-  no runtime repository lookups
-  into User Management BC
-end note
-
-note bottom of Invoice
-  Milestone 1 boundary:
-  no runtime repository lookups
-  into other bounded contexts
-end note
 
 note bottom of Auction
-  Aggregate Invariant:
-  an Auction can be scheduled only for
-  a published Listing owned by the verified Seller.
-  Bids can be placed only by verified Users
-  who are not the Seller.
+  Milestone 1 rule:
+  each bounded context owns its aggregate,
+  repository, database, and domain exception.
+end note
+
+note bottom of Listing
+  Cross-service aggregate composition is left
+  out of the domain model for Milestone 1.
 end note
 
 @enduml

@@ -1,40 +1,47 @@
 @startuml
-!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+!include C4_minimal.puml
 
 LAYOUT_TOP_DOWN()
 
-title C4 Level 2 - Container Diagram
+title C4 Level 2 - Auction Microservices Container Diagram
 
 Person(user, "Auction Platform User", "Buyer or seller using the platform")
+Person(peerGrader, "Peer Grader", "Runs Docker Compose, endpoint checks, tests, and coverage reports")
 
-System_Boundary(auctionSystem, "Auction Microservices System") {
-    Container(apiGateway, "API Gateway", "Spring Boot WebFlux", "Single entry point that exposes the public API and routes requests to backend services")
+package "Auction Microservices System" as auctionSystem <<System Boundary>> {
+    Container(apiGateway, "API Gateway", "Spring Boot WebFlux", "Single public entry point on localhost:8080. Adds HATEOAS links, maps downstream errors, and returns HTTP responses")
 
-    Container(auctionService, "Auction Aggregator Service", "Spring Boot + WebClient", "Owns auctions and bids, orchestrates listing, user, and invoice use cases")
-    Container(userService, "User Service", "Spring Boot", "Manages user accounts and addresses")
-    Container(listingService, "Listing Service", "Spring Boot", "Manages listings and publishing")
-    Container(invoiceService, "Invoice Service", "Spring Boot", "Manages invoices and payment processing")
+    Container(auctionService, "Auction Service", "Spring Boot", "Owns auctions, bids, auction lifecycle rules, and auction-specific exceptions")
+    Container(userService, "User Service", "Spring Boot", "Owns user accounts, addresses, verification status, and duplicate-email rules")
+    Container(listingService, "Listing Service", "Spring Boot", "Owns listings, publishing workflow, and listing-specific rules")
+    Container(invoiceService, "Invoice Service", "Spring Boot", "Owns invoices, payment status, and invoice-specific rules")
 
     ContainerDb(auctionDb, "Auction DB", "MySQL", "Stores auctions and bids")
     ContainerDb(userDb, "User DB", "MySQL", "Stores users and addresses")
     ContainerDb(listingDb, "Listing DB", "PostgreSQL", "Stores listings")
     ContainerDb(invoiceDb, "Invoice DB", "MongoDB", "Stores invoices and payment status documents")
+
+    ContainerDb(phpMyAdmin, "phpMyAdmin", "Database GUI", "Allows inspection of MySQL databases")
+    ContainerDb(pgAdmin, "pgAdmin", "Database GUI", "Allows inspection of the PostgreSQL database")
+    ContainerDb(mongoExpress, "Mongo Express", "Database GUI", "Allows inspection of the MongoDB invoice database")
 }
 
 Rel(user, apiGateway, "Uses", "HTTPS/JSON")
+Rel(peerGrader, apiGateway, "Executes all public API requests through", "HTTP/JSON on localhost:8080")
 
-Rel(apiGateway, auctionService, "Routes auction aggregate and bid requests", "HTTP/JSON")
+Rel(apiGateway, auctionService, "Routes auction and bid requests", "HTTP/JSON")
 Rel(apiGateway, userService, "Routes user requests", "HTTP/JSON")
 Rel(apiGateway, listingService, "Routes listing requests", "HTTP/JSON")
 Rel(apiGateway, invoiceService, "Routes invoice requests", "HTTP/JSON")
 
-Rel(auctionService, userService, "Validates verified sellers and bidders", "HTTP/JSON")
-Rel(auctionService, listingService, "Validates listing ownership and publication", "HTTP/JSON")
-Rel(auctionService, invoiceService, "Creates and reads sale invoices", "HTTP/JSON")
-
 Rel(auctionService, auctionDb, "Reads from and writes to", "Spring Data JPA / Flyway")
 Rel(userService, userDb, "Reads from and writes to", "Spring Data JPA / Flyway")
 Rel(listingService, listingDb, "Reads from and writes to", "Spring Data JPA / Flyway")
-Rel(invoiceService, invoiceDb, "Reads from and writes to", "Spring Data JPA / Flyway")
+Rel(invoiceService, invoiceDb, "Reads from and writes to", "Spring Data MongoDB")
+
+Rel(phpMyAdmin, auctionDb, "Inspects")
+Rel(phpMyAdmin, userDb, "Inspects")
+Rel(pgAdmin, listingDb, "Inspects")
+Rel(mongoExpress, invoiceDb, "Inspects")
 
 @enduml

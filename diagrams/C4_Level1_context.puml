@@ -1,14 +1,16 @@
 @startuml
-!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+!include C4_minimal.puml
 
 LAYOUT_TOP_DOWN()
 
-title C4 Level 1 - System Context
+title C4 Level 1 - Auction Microservices System Context
 
-Person(user, "Auction Platform User", "Buyer or seller who manages listings, auctions, bids, and invoices")
+Person(user, "Auction Platform User", "Buyer or seller who manages users, listings, auctions, bids, and invoices")
+Person(peerGrader, "Peer Grader", "Reviews the milestone by running Docker Compose, API requests, tests, and coverage reports")
 
-System(auctionSystem, "Auction Microservices System", "Microservices-based auction platform accessed through a single API gateway")
+System(auctionSystem, "Auction Microservices System", "Spring Boot microservices platform exposed through one API gateway on port 8080")
 
 Rel(user, auctionSystem, "Uses via HTTP/JSON")
+Rel(peerGrader, auctionSystem, "Demonstrates and verifies with Postman, Docker Compose, Gradle, and Jacoco")
 
 @enduml
