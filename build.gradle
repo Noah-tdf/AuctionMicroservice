@@ -7,6 +7,7 @@ ext.coverageExcludes = [
         '**/*Request.class',
         '**/*Response.class',
         '**/*JpaEntity.class',
+        '**/*Document.class',
         '**/*Exception.class',
         '**/*DataInitializer.class',
         '**/*DomainClient.class',
@@ -31,11 +32,19 @@ subprojects {
         }
     }
 
+    jacoco {
+        toolVersion = '0.8.11'
+        reportsDirectory = layout.buildDirectory.dir('customJacocoReportDir')
+    }
+
     tasks.withType(Test).configureEach {
         useJUnitPlatform()
         testLogging {
             events "PASSED", "FAILED", "SKIPPED"
             exceptionFormat "short"
+            showExceptions = true
+            showStackTraces = true
+            showStandardStreams = true
         }
         finalizedBy tasks.named('jacocoTestReport')
     }
@@ -45,6 +54,7 @@ subprojects {
         reports {
             xml.required = true
             html.required = true
+            html.outputLocation = layout.buildDirectory.dir('jacocoHtml')
         }
         afterEvaluate {
             classDirectories.setFrom(files(classDirectories.files.collect {
@@ -53,9 +63,40 @@ subprojects {
         }
     }
 
+    jacocoTestCoverageVerification {
+        dependsOn tasks.named('test')
+        violationRules {
+            rule {
+                limit {
+                    counter = 'LINE'
+                    value = 'COVEREDRATIO'
+                    minimum = 0.90
+                }
+            }
+        }
+        afterEvaluate {
+            classDirectories.setFrom(files(classDirectories.files.collect {
+                fileTree(dir: it, exclude: rootProject.ext.coverageExcludes)
+            }))
+        }
+    }
+
+    tasks.named('check') {
+        dependsOn tasks.named('jacocoTestCoverageVerification')
+    }
+
     tasks.named('clean') {
         doFirst {
             File buildDirFile = layout.buildDirectory.asFile.get()
+            File[] staleBuildDirs = buildDirFile.parentFile.listFiles().findAll {
+                it.isDirectory() && it.name.startsWith("${buildDirFile.name}-stale-")
+            }
+            staleBuildDirs.each { staleBuildDir ->
+                if (!staleBuildDir.deleteDir()) {
+                    logger.warn("Could not delete stale build directory ${staleBuildDir}")
+                }
+            }
+
             if (!buildDirFile.exists()) {
                 return
             }
@@ -63,8 +104,20 @@ subprojects {
             File staleDir = new File(buildDirFile.parentFile, "${buildDirFile.name}-stale-${System.currentTimeMillis()}")
             try {
                 Files.move(buildDirFile.toPath(), staleDir.toPath(), StandardCopyOption.REPLACE_EXISTING)
+                project.ext.cleanStaleBuildDir = staleDir
             } catch (Exception ex) {
                 logger.warn("Could not move stale build directory ${buildDirFile} before clean: ${ex.message}")
+            }
+        }
+        doLast {
+            if (!project.ext.has('cleanStaleBuildDir')) {
+                return
+            }
+
+            File staleDir = project.ext.cleanStaleBuildDir
+            project.ext.cleanStaleBuildDir = null
+            if (staleDir != null && staleDir.exists() && !staleDir.deleteDir()) {
+                logger.warn("Could not delete stale build directory ${staleDir}; it may still contain locked files")
             }
         }
     }
@@ -90,8 +143,8 @@ tasks.register('jacocoAllReports') {
 
         String rows = subprojects.collect { subproject ->
             String projectPath = subproject.path.replace(':', '')
-            String htmlPath = "../../../${projectPath}/build/reports/jacoco/test/html/index.html"
-            String xmlPath = "../../../${projectPath}/build/reports/jacoco/test/jacocoTestReport.xml"
+            String htmlPath = "../../../${projectPath}/build/jacocoHtml/index.html"
+            String xmlPath = "../../../${projectPath}/build/customJacocoReportDir/test/jacocoTestReport.xml"
 
             "        <tr><td>${projectPath}</td><td><a href=\"${htmlPath}\">HTML</a></td><td><a href=\"${xmlPath}\">XML</a></td></tr>"
         }.join(System.lineSeparator())

@@ -1,7 +1,29 @@
 server:
   port: ${SERVER_PORT:8083}
+  error:
+    include-message: always
+
+logging:
+  level:
+    root: INFO
+    org.springframework.web: DEBUG
+    com.ryannoah: TRACE
 
 spring:
+  application:
+    name: invoice-service
   data:
     mongodb:
       uri: ${MONGODB_URI:mongodb://auction:auction@localhost:27017/invoicedb?authSource=admin}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
+springdoc:
+  enable-hateoas: false

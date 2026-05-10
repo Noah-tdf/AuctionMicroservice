@@ -8,20 +8,25 @@ title C4 Level 2 - Container Diagram
 Person(user, "Auction Platform User", "Buyer or seller using the platform")
 
 System_Boundary(auctionSystem, "Auction Microservices System") {
-    Container(apiGateway, "API Gateway", "Spring Boot WebFlux", "Single entry point that exposes the public API and routes requests to backend services")
+    Container(apiGateway, "API Gateway", "Spring Boot + WebClient", "Single public entry point that exposes the public API and routes requests to backend services")
 
     Container(auctionService, "Auction Aggregator Service", "Spring Boot + WebClient", "Owns auctions and bids, orchestrates listing, user, and invoice use cases")
     Container(userService, "User Service", "Spring Boot", "Manages user accounts and addresses")
     Container(listingService, "Listing Service", "Spring Boot", "Manages listings and publishing")
     Container(invoiceService, "Invoice Service", "Spring Boot", "Manages invoices and payment processing")
 
-    ContainerDb(auctionDb, "Auction DB", "MySQL", "Stores auctions and bids")
+    ContainerDb(auctionDb, "Auction DB", "MongoDB", "Stores auctions and bids")
     ContainerDb(userDb, "User DB", "MySQL", "Stores users and addresses")
     ContainerDb(listingDb, "Listing DB", "PostgreSQL", "Stores listings")
     ContainerDb(invoiceDb, "Invoice DB", "MongoDB", "Stores invoices and payment status documents")
+
+    Container(auctionMongoExpress, "Auction Mongo Express", "Database GUI", "Browser GUI for the Auction MongoDB database")
+    Container(userPhpMyAdmin, "User phpMyAdmin", "Database GUI", "Browser GUI for the User MySQL database")
+    Container(pgAdmin, "pgAdmin", "Database GUI", "Browser GUI for PostgreSQL listing database")
+    Container(invoiceMongoExpress, "Invoice Mongo Express", "Database GUI", "Browser GUI for MongoDB invoice database")
 }
 
-Rel(user, apiGateway, "Uses", "HTTPS/JSON")
+Rel(user, apiGateway, "Uses", "HTTP/JSON on port 8080")
 
 Rel(apiGateway, auctionService, "Routes auction aggregate and bid requests", "HTTP/JSON")
 Rel(apiGateway, userService, "Routes user requests", "HTTP/JSON")
@@ -32,9 +37,20 @@ Rel(auctionService, userService, "Validates verified sellers and bidders", "HTTP
 Rel(auctionService, listingService, "Validates listing ownership and publication", "HTTP/JSON")
 Rel(auctionService, invoiceService, "Creates and reads sale invoices", "HTTP/JSON")
 
-Rel(auctionService, auctionDb, "Reads from and writes to", "Spring Data JPA / Flyway")
+Rel(auctionService, auctionDb, "Reads from and writes to", "Spring Data MongoDB")
 Rel(userService, userDb, "Reads from and writes to", "Spring Data JPA / Flyway")
 Rel(listingService, listingDb, "Reads from and writes to", "Spring Data JPA / Flyway")
-Rel(invoiceService, invoiceDb, "Reads from and writes to", "Spring Data JPA / Flyway")
+Rel(invoiceService, invoiceDb, "Reads from and writes to", "Spring Data MongoDB")
+
+Rel(auctionMongoExpress, auctionDb, "Reads", "MongoDB protocol")
+Rel(userPhpMyAdmin, userDb, "Reads", "MySQL protocol")
+Rel(pgAdmin, listingDb, "Reads", "PostgreSQL protocol")
+Rel(invoiceMongoExpress, invoiceDb, "Reads", "MongoDB protocol")
+
+note right of auctionMongoExpress
+  Database GUI containers are included for
+  milestone evidence. Public API access still
+  goes only through the API Gateway.
+end note
 
 @enduml

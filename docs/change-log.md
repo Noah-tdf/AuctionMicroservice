@@ -1,4 +1,4 @@
-# Milestone 1 Change Log
+# Milestone Change Log
 
 ## Starting point
 
@@ -41,3 +41,22 @@
 - Added a domain client layer to the API gateway so controllers delegate downstream calls instead of using `WebClient` directly.
 - Added centralized HTTP client error translation and gateway-wide exception handling for downstream `4xx/5xx` and service-unavailable scenarios.
 - Verified the exact peer-grading command `./gradlew clean build` succeeds locally after the gateway refactor.
+
+## Milestone 2 updates
+
+- Refactored the module packages to the teacher-style layers: `presentationlayer`, `businesslogiclayer`, `dataccesslayer`, `domain`, `utilities`, and `domainclientlayer`.
+- Completed `auction-service` as the aggregator/orchestrator microservice.
+- Switched the aggregator database from MySQL/JPA/Flyway to MongoDB/Spring Data MongoDB to match the Milestone 2 rubric wording.
+- Added aggregator domain clients for listing, user, and invoice orchestration.
+- Implemented the auction aggregate invariant:
+  - seller must own the listing
+  - listing must be published
+  - seller must be verified
+  - seller cannot bid on their own auction
+  - closing a sold auction creates an invoice for the winning bid
+- Updated the API gateway to expose all low-level service endpoints and aggregator endpoints through port `8080`.
+- Added HATEOAS-style `_links` at the API gateway.
+- Added and verified `scripts/system-integration-tests.sh`.
+- Updated the DDD and C4 diagrams for Milestone 2.
+- Kept database GUI port exposure in `docker-compose.gui.yml` so the main `docker-compose.yml` remains compliant with the API-gateway-only public port rule.
+- Split database GUI tools into four containers: Auction Mongo Express, User phpMyAdmin, pgAdmin, and Invoice Mongo Express.

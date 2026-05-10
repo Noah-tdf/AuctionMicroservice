@@ -14,6 +14,7 @@ services:
       invoice-service:
         condition: service_started
     environment:
+      SPRING_PROFILES_ACTIVE: docker
       SERVER_PORT: 8080
       AUCTION_SERVICE_BASE_URL: http://auction-service:8080
       USER_SERVICE_BASE_URL: http://user-service:8080
@@ -34,12 +35,9 @@ services:
       auction-db:
         condition: service_healthy
     environment:
+      SPRING_PROFILES_ACTIVE: docker
       SERVER_PORT: 8080
-      DB_HOST: auction-db
-      DB_PORT: 3306
-      DB_NAME: auctiondb
-      DB_USER: auction
-      DB_PASSWORD: auction
+      MONGODB_URI: mongodb://auction:auction@auction-db:27017/auctiondb?authSource=admin
       USER_SERVICE_BASE_URL: http://user-service:8080
       LISTING_SERVICE_BASE_URL: http://listing-service:8080
       INVOICE_SERVICE_BASE_URL: http://invoice-service:8080
@@ -57,6 +55,7 @@ services:
       user-db:
         condition: service_healthy
     environment:
+      SPRING_PROFILES_ACTIVE: docker
       SERVER_PORT: 8080
       DB_HOST: user-db
       DB_PORT: 3306
@@ -77,6 +76,7 @@ services:
       listing-db:
         condition: service_healthy
     environment:
+      SPRING_PROFILES_ACTIVE: docker
       SERVER_PORT: 8080
       DB_HOST: listing-db
       DB_PORT: 5432
@@ -97,6 +97,7 @@ services:
       invoice-db:
         condition: service_healthy
     environment:
+      SPRING_PROFILES_ACTIVE: docker
       SERVER_PORT: 8080
       MONGODB_URI: mongodb://auction:auction@invoice-db:27017/invoicedb?authSource=admin
     expose:
@@ -105,15 +106,13 @@ services:
       - backend
 
   auction-db:
-    image: mysql:8.4
+    image: mongo:7
     container_name: auction-auction-db
     environment:
-      MYSQL_DATABASE: auctiondb
-      MYSQL_USER: auction
-      MYSQL_PASSWORD: auction
-      MYSQL_ROOT_PASSWORD: root
+      MONGO_INITDB_ROOT_USERNAME: auction
+      MONGO_INITDB_ROOT_PASSWORD: auction
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      test: ["CMD", "mongosh", "--quiet", "-u", "auction", "-p", "auction", "--authenticationDatabase", "admin", "--eval", "db.adminCommand('ping').ok"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -165,9 +164,25 @@ services:
     networks:
       - backend
 
-  phpmyadmin:
+  auction-mongo-express:
+    image: mongo-express:1.0.2
+    container_name: auction-auction-mongo-express
+    depends_on:
+      auction-db:
+        condition: service_healthy
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: auction
+      ME_CONFIG_MONGODB_ADMINPASSWORD: auction
+      ME_CONFIG_MONGODB_SERVER: auction-db
+      ME_CONFIG_BASICAUTH_USERNAME: admin
+      ME_CONFIG_BASICAUTH_PASSWORD: admin
+    networks:
+      - public
+      - backend
+
+  user-phpmyadmin:
     image: phpmyadmin:5.2
-    container_name: auction-phpmyadmin
+    container_name: auction-user-phpmyadmin
     depends_on:
       user-db:
         condition: service_healthy
@@ -177,15 +192,13 @@ services:
       PMA_PORT: 3306
       PMA_USER: root
       PMA_PASSWORD: root
-    ports:
-      - "5051:80"
     networks:
       - public
       - backend
 
-  mongo-express:
+  invoice-mongo-express:
     image: mongo-express:1.0.2
-    container_name: auction-mongo-express
+    container_name: auction-invoice-mongo-express
     depends_on:
       invoice-db:
         condition: service_healthy
@@ -195,8 +208,6 @@ services:
       ME_CONFIG_MONGODB_SERVER: invoice-db
       ME_CONFIG_BASICAUTH_USERNAME: admin
       ME_CONFIG_BASICAUTH_PASSWORD: admin
-    ports:
-      - "5052:8081"
     networks:
       - public
       - backend
@@ -210,8 +221,6 @@ services:
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@auction.com
       PGADMIN_DEFAULT_PASSWORD: admin
-    ports:
-      - "5050:80"
     networks:
       - public
       - backend

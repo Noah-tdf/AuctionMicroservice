@@ -17,7 +17,7 @@ skinparam class {
   BackgroundColor<<Domain Exception>> #FCE5CD
 }
 
-title DDD Domain Model - Auction Microservices
+title DDD Domain Model - Auction Microservices Milestone 2
 
 package "Auction Orchestration BC" <<Bounded Context>> {
   class Auction <<Aggregate Root>> {
@@ -42,7 +42,7 @@ package "Auction Orchestration BC" <<Bounded Context>> {
     bidTime
   }
 
-  class AuctionMoney <<Value Object>> {
+  class "Money" as AuctionMoney <<Value Object>> {
     amount
     currency
   }
@@ -51,6 +51,7 @@ package "Auction Orchestration BC" <<Bounded Context>> {
     SCHEDULED
     ACTIVE
     CLOSED
+    SOLD
   }
 
   interface AuctionRepository <<Repository>>
@@ -67,6 +68,21 @@ package "Auction Orchestration BC" <<Bounded Context>> {
   AuctionApplicationService --> BidRepository
   AuctionApplicationService ..> AuctionHasBidsException
   AuctionApplicationService ..> AuctionInvariantViolationException
+
+  note right of Auction
+    Aggregate invariant:
+    an auction can be scheduled only when
+    the seller owns the listing, the listing
+    is published, and the seller is verified.
+
+    Bidding invariant:
+    a verified bidder may bid only when the
+    auction is ACTIVE and cannot be the seller.
+
+    Closing invariant:
+    a sold auction creates an invoice for
+    the winning bid.
+  end note
 }
 
 package "User Management BC" <<Bounded Context>> {
@@ -82,8 +98,8 @@ package "User Management BC" <<Bounded Context>> {
   class Address <<Value Object>> {
     street
     city
-    province
-    postalCode
+    zipCode
+    country
   }
 
   class Email <<Value Object>> {
@@ -112,10 +128,13 @@ package "Listing Management BC" <<Bounded Context>> {
     publish()
   }
 
-  enum ListingCondition <<Value Object>> {
+  enum "Condition" as ListingCondition <<Value Object>> {
     NEW
-    USED
-    REFURBISHED
+    LIKE_NEW
+    GOOD
+    FAIR
+    POOR
+    EXTENSIVE_USE
   }
 
   interface ListingRepository <<Repository>>
@@ -141,7 +160,7 @@ package "Payment Processing BC" <<Bounded Context>> {
     pay()
   }
 
-  class InvoiceMoney <<Value Object>> {
+  class "Money" as InvoiceMoney <<Value Object>> {
     amount
     currency
   }
@@ -149,12 +168,16 @@ package "Payment Processing BC" <<Bounded Context>> {
   enum InvoiceStatus <<Value Object>> {
     PENDING
     PAID
+    ERROR
+    REFUNDED
   }
 
   enum PaymentMethod <<Value Object>> {
     CREDIT_CARD
-    BANK_TRANSFER
-    CASH
+    DEBIT_CARD
+    PAYPAL
+    APPLE_PAY
+    GOOGLE_PAY
   }
 
   interface InvoiceRepository <<Repository>>
@@ -168,15 +191,10 @@ package "Payment Processing BC" <<Bounded Context>> {
   InvoiceApplicationService ..> InvoiceAlreadyPaidException
 }
 
-note bottom of Auction
-  Milestone 1 rule:
-  each bounded context owns its aggregate,
-  repository, database, and domain exception.
-end note
-
-note bottom of Listing
-  Cross-service aggregate composition is left
-  out of the domain model for Milestone 1.
+note bottom
+  All bounded contexts shown are in scope for Milestone 2.
+  Each context owns its aggregate, repository, database,
+  DTO-facing application service, and domain exception.
 end note
 
 @enduml

@@ -1,5 +1,17 @@
 server:
   port: ${SERVER_PORT:8080}
+  error:
+    include-message: always
+
+logging:
+  level:
+    root: INFO
+    org.springframework.web: DEBUG
+    com.ryannoah: TRACE
+
+spring:
+  application:
+    name: api-gateway
 
 services:
   auction-service:
@@ -10,3 +22,15 @@ services:
     base-url: ${LISTING_SERVICE_BASE_URL:http://localhost:8082}
   invoice-service:
     base-url: ${INVOICE_SERVICE_BASE_URL:http://localhost:8083}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
+springdoc:
+  enable-hateoas: false

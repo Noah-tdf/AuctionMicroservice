@@ -9,6 +9,6 @@ Person(user, "Auction Platform User", "Buyer or seller who manages listings, auc
 
 System(auctionSystem, "Auction Microservices System", "Microservices-based auction platform accessed through a single API gateway")
 
-Rel(user, auctionSystem, "Uses via HTTP/JSON")
+Rel(user, auctionSystem, "Uses through API Gateway", "HTTP/JSON on port 8080")
 
 @enduml

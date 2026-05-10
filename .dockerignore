@@ -1,0 +1,12 @@
+.gradle
+.gradle-user
+.idea
+**/build
+/build
+/gradle-8.10.2
+/src
+docs
+diagrams/*.png
+NoahRyan_Milestone1.docx
+NoahRyan_Milestone1.pdf
+plantuml.jar
