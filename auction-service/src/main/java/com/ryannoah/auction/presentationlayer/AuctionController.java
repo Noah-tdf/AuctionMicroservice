@@ -2,13 +2,17 @@ package com.ryannoah.auction.presentationlayer;
 
 import com.ryannoah.auction.businesslogiclayer.AuctionApplicationService;
 import com.ryannoah.auction.businesslogiclayer.BidApplicationService;
+import com.ryannoah.auction.datamappinglayer.AuctionMapper;
+import com.ryannoah.auction.datamappinglayer.BidMapper;
 import com.ryannoah.auction.domain.Auction;
 import com.ryannoah.auction.domain.Bid;
+import com.ryannoah.auction.presentationlayer.dto.AuctionResponseDTO;
+import com.ryannoah.auction.presentationlayer.dto.BidResponseDTO;
+import com.ryannoah.auction.presentationlayer.dto.CreateAuctionRequestDTO;
+import com.ryannoah.auction.presentationlayer.dto.PlaceBidRequestDTO;
+import com.ryannoah.auction.presentationlayer.dto.UpdateAuctionRequestDTO;
+import com.ryannoah.auction.presentationlayer.dto.UpdateBidRequestDTO;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Future;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -20,8 +24,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -30,38 +32,32 @@ public class AuctionController {
 
     private final AuctionApplicationService auctionApplicationService;
     private final BidApplicationService bidApplicationService;
+    private final AuctionMapper auctionMapper;
+    private final BidMapper bidMapper;
 
     public AuctionController(
             AuctionApplicationService auctionApplicationService,
-            BidApplicationService bidApplicationService
+            BidApplicationService bidApplicationService,
+            AuctionMapper auctionMapper,
+            BidMapper bidMapper
     ) {
         this.auctionApplicationService = auctionApplicationService;
         this.bidApplicationService = bidApplicationService;
+        this.auctionMapper = auctionMapper;
+        this.bidMapper = bidMapper;
     }
 
     @PostMapping
-    public ResponseEntity<AuctionResponse> createAuction(@Valid @RequestBody CreateAuctionRequest request) {
-        Auction auction = auctionApplicationService.createAuction(new AuctionApplicationService.CreateAuctionCommand(
-                request.listingId(),
-                request.sellerId(),
-                request.startTime(),
-                request.endTime(),
-                request.startingPrice(),
-                request.currency()
-        ));
+    public ResponseEntity<AuctionResponseDTO> createAuction(@Valid @RequestBody CreateAuctionRequestDTO request) {
+        Auction auction = auctionApplicationService.createAuction(auctionMapper.toCreateCommand(request));
         return ResponseEntity.status(HttpStatus.CREATED).body(toAuctionResponse(auctionApplicationService.getAuctionAggregate(auction.getAuctionId().value())));
     }
 
     @PutMapping("/{auctionId}")
-    public ResponseEntity<AuctionResponse> updateAuction(@PathVariable String auctionId, @Valid @RequestBody UpdateAuctionRequest request) {
+    public ResponseEntity<AuctionResponseDTO> updateAuction(@PathVariable String auctionId, @Valid @RequestBody UpdateAuctionRequestDTO request) {
         Auction auction = auctionApplicationService.updateAuction(
                 auctionId,
-                new AuctionApplicationService.UpdateAuctionCommand(
-                        request.startTime(),
-                        request.endTime(),
-                        request.startingPrice(),
-                        request.currency()
-                )
+                auctionMapper.toUpdateCommand(request)
         );
         return ResponseEntity.ok(toAuctionResponse(auctionApplicationService.getAuctionAggregate(auction.getAuctionId().value())));
     }
@@ -73,48 +69,43 @@ public class AuctionController {
     }
 
     @PostMapping("/{auctionId}/activate")
-    public ResponseEntity<AuctionResponse> activateAuction(@PathVariable String auctionId) {
+    public ResponseEntity<AuctionResponseDTO> activateAuction(@PathVariable String auctionId) {
         Auction auction = auctionApplicationService.activateAuction(auctionId);
         return ResponseEntity.ok(toAuctionResponse(auctionApplicationService.getAuctionAggregate(auction.getAuctionId().value())));
     }
 
     @PostMapping("/{auctionId}/close")
-    public ResponseEntity<AuctionResponse> closeAuction(@PathVariable String auctionId) {
+    public ResponseEntity<AuctionResponseDTO> closeAuction(@PathVariable String auctionId) {
         Auction auction = auctionApplicationService.closeAuction(auctionId);
         return ResponseEntity.ok(toAuctionResponse(auctionApplicationService.getAuctionAggregate(auction.getAuctionId().value())));
     }
 
     @GetMapping("/{auctionId}")
-    public ResponseEntity<AuctionResponse> getAuction(@PathVariable String auctionId) {
+    public ResponseEntity<AuctionResponseDTO> getAuction(@PathVariable String auctionId) {
         return ResponseEntity.ok(toAuctionResponse(auctionApplicationService.getAuctionAggregate(auctionId)));
     }
 
     @GetMapping
-    public ResponseEntity<List<AuctionResponse>> listAuctions() {
+    public ResponseEntity<List<AuctionResponseDTO>> listAuctions() {
         return ResponseEntity.ok(auctionApplicationService.listAuctionAggregates().stream().map(this::toAuctionResponse).toList());
     }
 
     @PostMapping("/{auctionId}/bids")
-    public ResponseEntity<BidResponse> placeBid(@PathVariable String auctionId, @Valid @RequestBody PlaceBidRequest request) {
-        Bid bid = bidApplicationService.placeBid(new BidApplicationService.PlaceBidCommand(
-                auctionId,
-                request.bidderId(),
-                request.bidAmount(),
-                request.currency()
-        ));
+    public ResponseEntity<BidResponseDTO> placeBid(@PathVariable String auctionId, @Valid @RequestBody PlaceBidRequestDTO request) {
+        Bid bid = bidApplicationService.placeBid(bidMapper.toPlaceCommand(auctionId, request));
         return ResponseEntity.status(HttpStatus.CREATED).body(toBidResponse(bid));
     }
 
     @PutMapping("/{auctionId}/bids/{bidId}")
-    public ResponseEntity<BidResponse> updateBid(
+    public ResponseEntity<BidResponseDTO> updateBid(
             @PathVariable String auctionId,
             @PathVariable String bidId,
-            @Valid @RequestBody UpdateBidRequest request
+            @Valid @RequestBody UpdateBidRequestDTO request
     ) {
         Bid bid = bidApplicationService.updateBid(
                 auctionId,
                 bidId,
-                new BidApplicationService.UpdateBidCommand(request.bidAmount(), request.currency())
+                bidMapper.toUpdateCommand(request)
         );
         return ResponseEntity.ok(toBidResponse(bid));
     }
@@ -126,95 +117,17 @@ public class AuctionController {
     }
 
     @GetMapping("/{auctionId}/bids")
-    public ResponseEntity<List<BidResponse>> listBids(@PathVariable String auctionId) {
+    public ResponseEntity<List<BidResponseDTO>> listBids(@PathVariable String auctionId) {
         return ResponseEntity.ok(bidApplicationService.listBids(auctionId).stream().map(this::toBidResponse).toList());
     }
 
-    private AuctionResponse toAuctionResponse(AuctionApplicationService.AuctionAggregate aggregate) {
+    private AuctionResponseDTO toAuctionResponse(AuctionApplicationService.AuctionAggregate aggregate) {
         Auction auction = aggregate.auction();
-        return new AuctionResponse(
-                auction.getAuctionId().value(),
-                auction.getListingId().value(),
-                auction.getSellerId().value(),
-                auction.getStartTime(),
-                auction.getEndTime(),
-                auction.getStartingPrice().amount(),
-                auction.getCurrentPrice().amount(),
-                auction.getStartingPrice().currency(),
-                auction.getStatus().name(),
-                aggregate.listing(),
-                aggregate.seller(),
-                aggregate.invoice(),
-                bidApplicationService.listBids(auction.getAuctionId().value()).stream().map(this::toBidResponse).toList()
-        );
+        List<BidResponseDTO> bids = bidApplicationService.listBids(auction.getAuctionId().value()).stream().map(this::toBidResponse).toList();
+        return auctionMapper.toResponseDTO(aggregate, bids);
     }
 
-    private BidResponse toBidResponse(Bid bid) {
-        return new BidResponse(
-                bid.getBidId().value(),
-                bid.getAuctionId().value(),
-                bid.getBidderId().value(),
-                bid.getBidAmount().amount(),
-                bid.getBidAmount().currency(),
-                bid.getBidTime()
-        );
-    }
-
-    public record CreateAuctionRequest(
-            @NotBlank String listingId,
-            @NotBlank String sellerId,
-            @NotNull LocalDateTime startTime,
-            @NotNull @Future LocalDateTime endTime,
-            @NotNull @Positive BigDecimal startingPrice,
-            @NotBlank String currency
-    ) {
-    }
-
-    public record UpdateAuctionRequest(
-            @NotNull LocalDateTime startTime,
-            @NotNull @Future LocalDateTime endTime,
-            @NotNull @Positive BigDecimal startingPrice,
-            @NotBlank String currency
-    ) {
-    }
-
-    public record PlaceBidRequest(
-            @NotBlank String bidderId,
-            @NotNull @Positive BigDecimal bidAmount,
-            @NotBlank String currency
-    ) {
-    }
-
-    public record UpdateBidRequest(
-            @NotNull @Positive BigDecimal bidAmount,
-            @NotBlank String currency
-    ) {
-    }
-
-    public record AuctionResponse(
-            String auctionId,
-            String listingId,
-            String sellerId,
-            LocalDateTime startTime,
-            LocalDateTime endTime,
-            BigDecimal startingPrice,
-            BigDecimal currentPrice,
-            String currency,
-            String status,
-            Object listing,
-            Object seller,
-            Object invoice,
-            List<BidResponse> bids
-    ) {
-    }
-
-    public record BidResponse(
-            String bidId,
-            String auctionId,
-            String bidderId,
-            BigDecimal bidAmount,
-            String currency,
-            LocalDateTime bidTime
-    ) {
+    private BidResponseDTO toBidResponse(Bid bid) {
+        return bidMapper.toResponseDTO(bid);
     }
 }

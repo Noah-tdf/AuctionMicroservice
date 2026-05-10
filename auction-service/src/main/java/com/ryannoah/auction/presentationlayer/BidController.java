@@ -1,48 +1,27 @@
 package com.ryannoah.auction.presentationlayer;
 
 import com.ryannoah.auction.businesslogiclayer.BidApplicationService;
-import com.ryannoah.auction.domain.Bid;
+import com.ryannoah.auction.datamappinglayer.BidMapper;
+import com.ryannoah.auction.presentationlayer.dto.BidResponseDTO;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("/api/v1/bids")
 public class BidController {
 
     private final BidApplicationService bidApplicationService;
+    private final BidMapper bidMapper;
 
-    public BidController(BidApplicationService bidApplicationService) {
+    public BidController(BidApplicationService bidApplicationService, BidMapper bidMapper) {
         this.bidApplicationService = bidApplicationService;
+        this.bidMapper = bidMapper;
     }
 
     @GetMapping
-    public ResponseEntity<java.util.List<BidResponse>> listBids() {
-        return ResponseEntity.ok(bidApplicationService.listAllBids().stream().map(this::toResponse).toList());
-    }
-
-    private BidResponse toResponse(Bid bid) {
-        return new BidResponse(
-                bid.getBidId().value(),
-                bid.getAuctionId().value(),
-                bid.getBidderId().value(),
-                bid.getBidAmount().amount(),
-                bid.getBidAmount().currency(),
-                bid.getBidTime()
-        );
-    }
-
-    public record BidResponse(
-            String bidId,
-            String auctionId,
-            String bidderId,
-            BigDecimal bidAmount,
-            String currency,
-            LocalDateTime bidTime
-    ) {
+    public ResponseEntity<java.util.List<BidResponseDTO>> listBids() {
+        return ResponseEntity.ok(bidApplicationService.listAllBids().stream().map(bidMapper::toResponseDTO).toList());
     }
 }

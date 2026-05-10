@@ -6,6 +6,7 @@ ext.coverageExcludes = [
         '**/*Config.class',
         '**/*Request.class',
         '**/*Response.class',
+        '**/*DTO.class',
         '**/*JpaEntity.class',
         '**/*Document.class',
         '**/*Exception.class',

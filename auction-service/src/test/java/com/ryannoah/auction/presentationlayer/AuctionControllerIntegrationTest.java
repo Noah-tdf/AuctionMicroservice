@@ -9,6 +9,9 @@ import com.ryannoah.auction.dataccesslayer.BidSpringDataRepository;
 import com.ryannoah.auction.domainclientlayer.InvoiceDomainClient;
 import com.ryannoah.auction.domainclientlayer.ListingDomainClient;
 import com.ryannoah.auction.domainclientlayer.UserDomainClient;
+import com.ryannoah.auction.domainclientlayer.dto.InvoiceClientResponseDTO;
+import com.ryannoah.auction.domainclientlayer.dto.ListingClientResponseDTO;
+import com.ryannoah.auction.domainclientlayer.dto.UserClientResponseDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -70,7 +73,7 @@ class AuctionControllerIntegrationTest {
         stubBidRepository();
         when(listingDomainClient.getListing(anyString())).thenAnswer(invocation -> publishedListing(invocation.getArgument(0), "user-001"));
         when(userDomainClient.getUser(anyString())).thenAnswer(invocation -> verifiedUser(invocation.getArgument(0)));
-        when(invoiceDomainClient.listInvoices()).thenReturn(new InvoiceDomainClient.InvoiceResponse[0]);
+        when(invoiceDomainClient.listInvoices()).thenReturn(new InvoiceClientResponseDTO[0]);
     }
 
     private void stubAuctionRepository() {
@@ -145,7 +148,7 @@ class AuctionControllerIntegrationTest {
 
     @Test
     void shouldRejectAuctionWhenListingIsNotPublished() {
-        when(listingDomainClient.getListing("listing-draft")).thenReturn(new ListingDomainClient.ListingResponse(
+        when(listingDomainClient.getListing("listing-draft")).thenReturn(new ListingClientResponseDTO(
                 "listing-draft", "user-001", "Draft", "Draft listing", "Office", "GOOD", false
         ));
 
@@ -368,8 +371,8 @@ class AuctionControllerIntegrationTest {
                 .jsonPath("$.message").isEqualTo("Auction seller cannot bid on their own auction: user-001");
     }
 
-    private ListingDomainClient.ListingResponse publishedListing(String listingId, String sellerId) {
-        return new ListingDomainClient.ListingResponse(listingId, sellerId, "Published", "Published listing", "Office", "GOOD", true);
+    private ListingClientResponseDTO publishedListing(String listingId, String sellerId) {
+        return new ListingClientResponseDTO(listingId, sellerId, "Published", "Published listing", "Office", "GOOD", true);
     }
 
     private String createAuction(String listingId, String sellerId) throws Exception {
@@ -393,7 +396,7 @@ class AuctionControllerIntegrationTest {
         return objectMapper.readTree(result.getResponseBody()).get("auctionId").asText();
     }
 
-    private UserDomainClient.UserResponse verifiedUser(String userId) {
-        return new UserDomainClient.UserResponse(userId, "user", "user@example.com", LocalDateTime.now(), true, BigDecimal.ZERO, 0, null);
+    private UserClientResponseDTO verifiedUser(String userId) {
+        return new UserClientResponseDTO(userId, "user", "user@example.com", LocalDateTime.now(), true, BigDecimal.ZERO, 0, null);
     }
 }

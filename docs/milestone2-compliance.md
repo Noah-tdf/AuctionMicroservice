@@ -15,11 +15,15 @@
   - `invoice-service`
 - Layer names follow the teacher style:
   - `presentationlayer`
+  - `presentationlayer/dto`
+  - `datamappinglayer`
   - `businesslogiclayer`
   - `dataccesslayer`
   - `domain`
   - `utilities`
   - `domainclientlayer` where HTTP clients are needed
+  - `domainclientlayer/dto` where downstream HTTP DTOs are needed
+- Controllers delegate request/response conversion to mapper classes instead of carrying mapping code and DTO records inside controller files.
 
 ## Design Evidence
 
@@ -63,10 +67,10 @@ Verification command:
 Current line coverage from JaCoCo:
 
 - `api-gateway`: 99.1%
-- `auction-service`: 92.8%
+- `auction-service`: 94.7%
 - `invoice-service`: 96.4%
-- `listing-service`: 95.2%
-- `user-service`: 91.5%
+- `listing-service`: 95.3%
+- `user-service`: 91.7%
 
 The build is configured to fail if any service drops below 90% line coverage.
 

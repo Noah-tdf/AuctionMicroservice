@@ -1,12 +1,13 @@
 package com.ryannoah.auction.presentationlayer;
 
 import com.ryannoah.auction.businesslogiclayer.UserApplicationService;
-import com.ryannoah.auction.domain.User;
+import com.ryannoah.auction.datamappinglayer.UserMapper;
+import com.ryannoah.auction.presentationlayer.dto.CreateUserRequestDTO;
+import com.ryannoah.auction.presentationlayer.dto.UpdateUserRequestDTO;
+import com.ryannoah.auction.presentationlayer.dto.UserResponseDTO;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -14,7 +15,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -22,121 +22,37 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController {
 
     private final UserApplicationService userApplicationService;
+    private final UserMapper userMapper;
 
-    public UserController(UserApplicationService userApplicationService) {
+    public UserController(UserApplicationService userApplicationService, UserMapper userMapper) {
         this.userApplicationService = userApplicationService;
+        this.userMapper = userMapper;
     }
 
     @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    public UserResponse createUser(@Valid @RequestBody CreateUserRequest request) {
-        return toResponse(userApplicationService.createUser(toCreateCommand(request)));
+    public ResponseEntity<UserResponseDTO> createUser(@Valid @RequestBody CreateUserRequestDTO request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(userMapper.toResponseDTO(userApplicationService.createUser(userMapper.toCreateCommand(request))));
     }
 
     @PutMapping("/{userId}")
-    public UserResponse updateUser(@PathVariable String userId, @Valid @RequestBody UpdateUserRequest request) {
-        return toResponse(userApplicationService.updateUser(userId, toUpdateCommand(request)));
+    public ResponseEntity<UserResponseDTO> updateUser(@PathVariable String userId, @Valid @RequestBody UpdateUserRequestDTO request) {
+        return ResponseEntity.ok(userMapper.toResponseDTO(userApplicationService.updateUser(userId, userMapper.toUpdateCommand(request))));
     }
 
     @DeleteMapping("/{userId}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteUser(@PathVariable String userId) {
+    public ResponseEntity<Void> deleteUser(@PathVariable String userId) {
         userApplicationService.deleteUser(userId);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{userId}")
-    public UserResponse getUser(@PathVariable String userId) {
-        return toResponse(userApplicationService.getUser(userId));
+    public ResponseEntity<UserResponseDTO> getUser(@PathVariable String userId) {
+        return ResponseEntity.ok(userMapper.toResponseDTO(userApplicationService.getUser(userId)));
     }
 
     @GetMapping
-    public java.util.List<UserResponse> listUsers() {
-        return userApplicationService.listUsers().stream().map(this::toResponse).toList();
-    }
-
-    private UserApplicationService.CreateUserCommand toCreateCommand(CreateUserRequest request) {
-        return new UserApplicationService.CreateUserCommand(
-                request.username(),
-                request.email(),
-                request.isVerified(),
-                request.address().street(),
-                request.address().city(),
-                request.address().zipCode(),
-                request.address().country()
-        );
-    }
-
-    private UserApplicationService.UpdateUserCommand toUpdateCommand(UpdateUserRequest request) {
-        return new UserApplicationService.UpdateUserCommand(
-                request.username(),
-                request.email(),
-                request.isVerified(),
-                request.address().street(),
-                request.address().city(),
-                request.address().zipCode(),
-                request.address().country()
-        );
-    }
-
-    private UserResponse toResponse(User user) {
-        return new UserResponse(
-                user.getUserId().value(),
-                user.getUsername(),
-                user.getEmail().address(),
-                user.getRegistrationDate(),
-                user.isVerified(),
-                user.getRating().rating(),
-                user.getRating().totalReviews(),
-                new AddressResponse(
-                        user.getAddress().street(),
-                        user.getAddress().city(),
-                        user.getAddress().zipCode(),
-                        user.getAddress().country()
-                )
-        );
-    }
-
-    public record CreateUserRequest(
-            @NotBlank String username,
-            @Email @NotBlank String email,
-            boolean isVerified,
-            @Valid @NotNull AddressRequest address
-    ) {
-    }
-
-    public record UpdateUserRequest(
-            @NotBlank String username,
-            @Email @NotBlank String email,
-            boolean isVerified,
-            @Valid @NotNull AddressRequest address
-    ) {
-    }
-
-    public record AddressRequest(
-            @NotBlank String street,
-            @NotBlank String city,
-            @NotBlank String zipCode,
-            @NotBlank String country
-    ) {
-    }
-
-    public record UserResponse(
-            String userId,
-            String username,
-            String email,
-            java.time.LocalDateTime registrationDate,
-            boolean isVerified,
-            java.math.BigDecimal rating,
-            int totalReviews,
-            AddressResponse address
-    ) {
-    }
-
-    public record AddressResponse(
-            String street,
-            String city,
-            String zipCode,
-            String country
-    ) {
+    public ResponseEntity<java.util.List<UserResponseDTO>> listUsers() {
+        return ResponseEntity.ok(userApplicationService.listUsers().stream().map(userMapper::toResponseDTO).toList());
     }
 }

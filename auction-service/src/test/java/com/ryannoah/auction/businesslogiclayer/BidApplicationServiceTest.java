@@ -13,6 +13,7 @@ import com.ryannoah.auction.utilities.DomainNotFoundException;
 import com.ryannoah.auction.domain.ListingId;
 import com.ryannoah.auction.domain.UserId;
 import com.ryannoah.auction.domainclientlayer.UserDomainClient;
+import com.ryannoah.auction.domainclientlayer.dto.UserClientResponseDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -125,7 +126,7 @@ class BidApplicationServiceTest {
                 .hasMessage("Auction not found: missing-auction");
     }
 
-    private UserDomainClient.UserResponse verifiedUser(String userId, boolean verified) {
-        return new UserDomainClient.UserResponse(userId, "bidder", "bidder@example.com", LocalDateTime.now(), verified, BigDecimal.ZERO, 0, null);
+    private UserClientResponseDTO verifiedUser(String userId, boolean verified) {
+        return new UserClientResponseDTO(userId, "bidder", "bidder@example.com", LocalDateTime.now(), verified, BigDecimal.ZERO, 0, null);
     }
 }

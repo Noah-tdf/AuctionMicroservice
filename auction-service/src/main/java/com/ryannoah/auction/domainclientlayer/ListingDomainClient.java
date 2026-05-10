@@ -1,6 +1,6 @@
 package com.ryannoah.auction.domainclientlayer;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.ryannoah.auction.domainclientlayer.dto.ListingClientResponseDTO;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -18,19 +18,7 @@ public class ListingDomainClient extends AbstractHttpDomainClient {
         this.listingServiceBaseUrl = listingServiceBaseUrl;
     }
 
-    public ListingResponse getListing(String listingId) {
-        return getObject(listingServiceBaseUrl, "/api/v1/listings/" + listingId, ListingResponse.class);
-    }
-
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    public record ListingResponse(
-            String listingId,
-            String sellerId,
-            String title,
-            String description,
-            String category,
-            String condition,
-            boolean published
-    ) {
+    public ListingClientResponseDTO getListing(String listingId) {
+        return getObject(listingServiceBaseUrl, "/api/v1/listings/" + listingId, ListingClientResponseDTO.class);
     }
 }

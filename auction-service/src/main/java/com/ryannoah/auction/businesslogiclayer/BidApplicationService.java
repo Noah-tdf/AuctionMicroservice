@@ -12,6 +12,7 @@ import com.ryannoah.auction.utilities.DomainConflictException;
 import com.ryannoah.auction.utilities.DomainNotFoundException;
 import com.ryannoah.auction.domain.UserId;
 import com.ryannoah.auction.domainclientlayer.UserDomainClient;
+import com.ryannoah.auction.domainclientlayer.dto.UserClientResponseDTO;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -110,7 +111,7 @@ public class BidApplicationService {
         if (auction.getSellerId().value().equals(bidderId)) {
             throw new AuctionInvariantViolationException("Auction seller cannot bid on their own auction: " + bidderId);
         }
-        UserDomainClient.UserResponse bidder = userDomainClient.getUser(bidderId);
+        UserClientResponseDTO bidder = userDomainClient.getUser(bidderId);
         if (!bidder.verified()) {
             throw new AuctionInvariantViolationException("Auction bidder must be verified: " + bidderId);
         }

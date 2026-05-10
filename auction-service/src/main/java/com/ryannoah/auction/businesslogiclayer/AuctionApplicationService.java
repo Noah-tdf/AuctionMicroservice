@@ -14,6 +14,10 @@ import com.ryannoah.auction.domainclientlayer.DownstreamServiceException;
 import com.ryannoah.auction.domainclientlayer.InvoiceDomainClient;
 import com.ryannoah.auction.domainclientlayer.ListingDomainClient;
 import com.ryannoah.auction.domainclientlayer.UserDomainClient;
+import com.ryannoah.auction.domainclientlayer.dto.CreateInvoiceClientRequestDTO;
+import com.ryannoah.auction.domainclientlayer.dto.InvoiceClientResponseDTO;
+import com.ryannoah.auction.domainclientlayer.dto.ListingClientResponseDTO;
+import com.ryannoah.auction.domainclientlayer.dto.UserClientResponseDTO;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -122,8 +126,8 @@ public class AuctionApplicationService {
     }
 
     private void validateAuctionInvariant(String listingId, String sellerId) {
-        ListingDomainClient.ListingResponse listing = listingDomainClient.getListing(listingId);
-        UserDomainClient.UserResponse seller = userDomainClient.getUser(sellerId);
+        ListingClientResponseDTO listing = listingDomainClient.getListing(listingId);
+        UserClientResponseDTO seller = userDomainClient.getUser(sellerId);
 
         if (!listing.sellerId().equals(sellerId)) {
             throw new AuctionInvariantViolationException("Auction seller must own listing: " + listingId);
@@ -144,7 +148,7 @@ public class AuctionApplicationService {
                 .max(Comparator.comparing(bid -> bid.getBidAmount().amount()))
                 .orElseThrow(() -> new DomainNotFoundException("Winning bid not found for auction: " + auction.getAuctionId().value()));
 
-        invoiceDomainClient.createInvoice(new InvoiceDomainClient.CreateInvoiceRequest(
+        invoiceDomainClient.createInvoice(new CreateInvoiceClientRequestDTO(
                 auction.getAuctionId().value(),
                 winningBid.getBidderId().value(),
                 auction.getSellerId().value(),
@@ -164,7 +168,7 @@ public class AuctionApplicationService {
         );
     }
 
-    private Optional<ListingDomainClient.ListingResponse> safeListing(String listingId) {
+    private Optional<ListingClientResponseDTO> safeListing(String listingId) {
         try {
             return Optional.ofNullable(listingDomainClient.getListing(listingId));
         } catch (DownstreamServiceException exception) {
@@ -172,7 +176,7 @@ public class AuctionApplicationService {
         }
     }
 
-    private Optional<UserDomainClient.UserResponse> safeUser(String userId) {
+    private Optional<UserClientResponseDTO> safeUser(String userId) {
         try {
             return Optional.ofNullable(userDomainClient.getUser(userId));
         } catch (DownstreamServiceException exception) {
@@ -180,9 +184,9 @@ public class AuctionApplicationService {
         }
     }
 
-    private Optional<InvoiceDomainClient.InvoiceResponse> safeInvoice(String auctionId) {
+    private Optional<InvoiceClientResponseDTO> safeInvoice(String auctionId) {
         try {
-            InvoiceDomainClient.InvoiceResponse[] invoices = invoiceDomainClient.listInvoices();
+            InvoiceClientResponseDTO[] invoices = invoiceDomainClient.listInvoices();
             if (invoices == null) {
                 return Optional.empty();
             }
@@ -214,9 +218,9 @@ public class AuctionApplicationService {
 
     public record AuctionAggregate(
             Auction auction,
-            ListingDomainClient.ListingResponse listing,
-            UserDomainClient.UserResponse seller,
-            InvoiceDomainClient.InvoiceResponse invoice
+            ListingClientResponseDTO listing,
+            UserClientResponseDTO seller,
+            InvoiceClientResponseDTO invoice
     ) {
     }
 }

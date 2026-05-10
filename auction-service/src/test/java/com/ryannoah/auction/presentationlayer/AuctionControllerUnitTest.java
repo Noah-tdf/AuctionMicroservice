@@ -1,13 +1,15 @@
 package com.ryannoah.auction.presentationlayer;
 
-import com.ryannoah.auction.utilities.GlobalExceptionHandler;
 import com.ryannoah.auction.businesslogiclayer.AuctionApplicationService;
 import com.ryannoah.auction.businesslogiclayer.BidApplicationService;
+import com.ryannoah.auction.datamappinglayer.AuctionMapper;
+import com.ryannoah.auction.datamappinglayer.BidMapper;
 import com.ryannoah.auction.domain.Auction;
+import com.ryannoah.auction.domain.ListingId;
 import com.ryannoah.auction.domain.Money;
 import com.ryannoah.auction.utilities.DomainNotFoundException;
-import com.ryannoah.auction.domain.ListingId;
 import com.ryannoah.auction.domain.UserId;
+import com.ryannoah.auction.utilities.GlobalExceptionHandler;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -28,7 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(AuctionController.class)
-@Import(GlobalExceptionHandler.class)
+@Import({GlobalExceptionHandler.class, AuctionMapper.class, BidMapper.class})
 class AuctionControllerUnitTest {
 
     @Autowired

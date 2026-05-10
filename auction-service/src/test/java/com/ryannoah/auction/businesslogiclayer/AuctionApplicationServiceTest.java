@@ -12,6 +12,8 @@ import com.ryannoah.auction.domain.UserId;
 import com.ryannoah.auction.domainclientlayer.InvoiceDomainClient;
 import com.ryannoah.auction.domainclientlayer.ListingDomainClient;
 import com.ryannoah.auction.domainclientlayer.UserDomainClient;
+import com.ryannoah.auction.domainclientlayer.dto.ListingClientResponseDTO;
+import com.ryannoah.auction.domainclientlayer.dto.UserClientResponseDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -70,7 +72,7 @@ class AuctionApplicationServiceTest {
 
     @Test
     void shouldRejectAuctionForUnpublishedListing() {
-        when(listingDomainClient.getListing("listing-1")).thenReturn(new ListingDomainClient.ListingResponse(
+        when(listingDomainClient.getListing("listing-1")).thenReturn(new ListingClientResponseDTO(
                 "listing-1", "seller-1", "Camera", "Digital", "Electronics", "GOOD", false
         ));
         when(userDomainClient.getUser("seller-1")).thenReturn(verifiedUser("seller-1"));
@@ -189,7 +191,7 @@ class AuctionApplicationServiceTest {
     @Test
     void shouldRejectAuctionWhenSellerIsNotVerified() {
         when(listingDomainClient.getListing("listing-1")).thenReturn(publishedListing("listing-1", "seller-1"));
-        when(userDomainClient.getUser("seller-1")).thenReturn(new UserDomainClient.UserResponse(
+        when(userDomainClient.getUser("seller-1")).thenReturn(new UserClientResponseDTO(
                 "seller-1", "seller", "seller@example.com", LocalDateTime.now(), false, BigDecimal.ZERO, 0, null
         ));
 
@@ -204,8 +206,8 @@ class AuctionApplicationServiceTest {
                 .hasMessage("Auction seller must be verified: seller-1");
     }
 
-    private ListingDomainClient.ListingResponse publishedListing(String listingId, String sellerId) {
-        return new ListingDomainClient.ListingResponse(listingId, sellerId, "Camera", "Digital", "Electronics", "GOOD", true);
+    private ListingClientResponseDTO publishedListing(String listingId, String sellerId) {
+        return new ListingClientResponseDTO(listingId, sellerId, "Camera", "Digital", "Electronics", "GOOD", true);
     }
 
     private Auction scheduledAuction(String listingId, String sellerId) {
@@ -218,7 +220,7 @@ class AuctionApplicationServiceTest {
         );
     }
 
-    private UserDomainClient.UserResponse verifiedUser(String userId) {
-        return new UserDomainClient.UserResponse(userId, "seller", "seller@example.com", LocalDateTime.now(), true, BigDecimal.ZERO, 0, null);
+    private UserClientResponseDTO verifiedUser(String userId) {
+        return new UserClientResponseDTO(userId, "seller", "seller@example.com", LocalDateTime.now(), true, BigDecimal.ZERO, 0, null);
     }
 }

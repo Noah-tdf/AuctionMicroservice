@@ -13,28 +13,28 @@
   - `user-service`
   - `listing-service`
   - `invoice-service`
-- Kept the monolith source in place as historical reference and migrated milestone code into the new modules.
+- Removed the root monolith source after migration so the submitted project contains only the Gradle microservice modules.
 - Removed HATEOAS from the low-level services and implemented hypermedia at the API gateway level only.
 - Removed cross-service repository lookups from `listing-service` and `invoice-service` because Milestone 1 says not to implement cross-microservice aggregates yet.
 
 ## Manual code changes
 
-- Added independent Spring Boot application entry points for all four modules.
+- Added independent Spring Boot application entry points for all five modules.
 - Added separate Flyway schemas and sample seed data for each low-level service.
 - Added one subdomain-specific exception per low-level service:
   - `AuctionHasBidsException`
   - `DuplicateEmailException`
   - `ListingAlreadyPublishedException`
   - `InvoiceAlreadyPaidException`
-- Reworked controllers to return plain JSON in low-level services.
+- Reworked controllers to use `ResponseEntity` and plain JSON DTO responses.
 - Added repository integration tests and controller integration tests with `WebTestClient`.
 - Added JaCoCo reporting in the shared Gradle configuration.
-- Replaced the original 3-container compose file with an 11-container microservices landscape:
+- Replaced the original 3-container compose file with a 13-container microservices landscape:
   - API gateway
-  - 4 low-level services
+  - 3 low-level services
+  - 1 aggregator service
   - 4 databases
-  - phpMyAdmin
-  - pgAdmin
+  - 4 database GUI tools: Auction Mongo Express, User phpMyAdmin, pgAdmin, and Invoice Mongo Express
 
 ## Remaining validation
 
@@ -45,6 +45,9 @@
 ## Milestone 2 updates
 
 - Refactored the module packages to the teacher-style layers: `presentationlayer`, `businesslogiclayer`, `dataccesslayer`, `domain`, `utilities`, and `domainclientlayer`.
+- Extracted request and response DTOs into `presentationlayer/dto` packages.
+- Added explicit mapper classes in `datamappinglayer` so controllers stay small and mapping is not hidden inside endpoint methods.
+- Extracted aggregator downstream HTTP DTOs into `domainclientlayer/dto`.
 - Completed `auction-service` as the aggregator/orchestrator microservice.
 - Switched the aggregator database from MySQL/JPA/Flyway to MongoDB/Spring Data MongoDB to match the Milestone 2 rubric wording.
 - Added aggregator domain clients for listing, user, and invoice orchestration.
