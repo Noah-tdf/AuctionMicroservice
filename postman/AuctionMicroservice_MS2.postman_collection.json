@@ -359,7 +359,7 @@
                                                       "url":  "{{baseUrl}}/api/v1/users",
                                                       "body":  {
                                                                    "mode":  "raw",
-                                                                   "raw":  "{\n  \"username\": \"seller-{{runId}}\",\n  \"email\": \"seller-{{runId}}@example.com\",\n  \"verified\": true,\n  \"address\": { \"street\": \"100 Demo Street\", \"city\": \"Montreal\", \"zipCode\": \"H1H1H1\", \"country\": \"Canada\" }\n}",
+                                                                   "raw":  "{\n  \"username\": \"duplicate-user-{{runId}}\",\n  \"email\": \"seller-updated-{{runId}}@example.com\",\n  \"verified\": true,\n  \"address\": { \"street\": \"999 Duplicate Street\", \"city\": \"Montreal\", \"zipCode\": \"H9H9H9\", \"country\": \"Canada\" }\n}",
                                                                    "options":  {
                                                                                    "raw":  {
                                                                                                "language":  "json"
